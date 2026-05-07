@@ -8,9 +8,13 @@ import { Plus, Check, ChevronDown, Star, Anchor, Move, ZoomIn, ShoppingCart, Boo
 
 // ── Data ────────────────────────────────────────────────────────
 const SLIPPER_STYLES = [
-  { id: 'slide', name: 'Classic Slide', svgPath: 'M4 18 Q4 10 28 8 Q52 10 52 18 L52 22 Q52 26 28 24 Q4 26 4 22Z' },
-  { id: 'thong', name: 'Thong',         svgPath: 'M4 22 Q16 10 28 8 Q40 10 52 22 M28 8 L28 24' },
-  { id: 'mule',  name: 'Mules',         svgPath: 'M4 22 Q4 12 28 10 Q52 12 52 22 L52 26 Q28 28 4 26Z M4 22 L52 22' },
+  { id: 'slide',    name: 'Classic Slide', svgPath: 'M4 18 Q4 10 28 8 Q52 10 52 18 L52 22 Q52 26 28 24 Q4 26 4 22Z' },
+  { id: 'thong',   name: 'Thong',         svgPath: 'M4 22 Q16 10 28 8 Q40 10 52 22 M28 8 L28 24' },
+  { id: 'mule',    name: 'Mules',         svgPath: 'M4 22 Q4 12 28 10 Q52 12 52 22 L52 26 Q28 28 4 26Z M4 22 L52 22' },
+  { id: 'platform',name: 'Platform',      svgPath: 'M4 22 Q4 10 28 8 Q52 10 52 22 L52 28 Q52 30 28 30 Q4 30 4 28Z M4 24 L52 24' },
+  { id: 'flipflop',name: 'Flip-Flop',    svgPath: 'M4 24 Q16 22 28 22 Q40 22 52 24 M28 22 L28 10 M28 10 Q20 14 16 20 M28 10 Q36 14 40 20' },
+  { id: 'wedge',   name: 'Wedge',        svgPath: 'M4 26 Q4 14 28 10 Q52 12 52 18 L52 22 Q52 26 28 24 L4 30Z' },
+  { id: 'cloud',   name: 'Cloud',        svgPath: 'M8 22 Q6 14 14 13 Q16 8 22 10 Q26 6 32 9 Q40 6 44 12 Q52 12 52 20 Q52 26 28 26 Q4 26 8 22Z' },
 ];
 const SOLE_MATERIALS = ['Recycled Rubber', 'EVA Foam'];
 const BASE_COLORS = [
@@ -66,59 +70,155 @@ function SlipperModel({ style, baseColor, strapColor, showStrap }:
 
   const sm = <meshPhysicalMaterial color={sc} roughness={0.35} metalness={0.05} clearcoat={0.7} clearcoatRoughness={0.2} />;
 
+  // Per-style sole height so straps always sit correctly
+  const soleH: Record<string, number> = {
+    slide: 0.20, thong: 0.20, mule: 0.20,
+    platform: 0.55, flipflop: 0.10, wedge: 0.20, cloud: 0.28,
+  };
+  const midsoleY: Record<string, number> = {
+    slide: 0.18, thong: 0.18, mule: 0.18,
+    platform: 0.40, flipflop: 0.09, wedge: 0.18, cloud: 0.22,
+  };
+  const strapY: Record<string, number> = {
+    slide: 0.44, thong: 0.38, mule: 0.44,
+    platform: 0.80, flipflop: 0.22, wedge: 0.44, cloud: 0.52,
+  };
+  const mh  = soleH[style]  ?? 0.20;
+  const my  = midsoleY[style] ?? 0.18;
+  const sy  = strapY[style] ?? 0.44;
+
   return (
-    // Slight Z-tilt simulates "wearing" angle like reference image
     <group rotation={[0.08, -0.35, -0.18]} scale={1.15}>
 
-      {/* Rubber sole — oval disc */}
-      <mesh scale={[1.9, 0.16, 0.78]} position={[0, 0, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[1, 1, 1, 56]} />
-        <meshPhysicalMaterial color="#c8bfb0" roughness={0.85} metalness={0} />
-      </mesh>
-      {/* Sole grooves (thin darker ring) */}
-      <mesh scale={[1.85, 0.04, 0.74]} position={[0, -0.06, 0]}>
-        <cylinderGeometry args={[1, 1.08, 1, 56]} />
-        <meshPhysicalMaterial color="#a09588" roughness={0.9} metalness={0} />
-      </mesh>
+      {/* ── Rubber outer sole ── */}
+      {style === 'wedge' ? (
+        // Wedge: tapered box — thick heel, thin toe
+        <group>
+          <mesh position={[0, 0, 0]} castShadow receiveShadow
+            rotation={[0, 0, 0]}>
+            <boxGeometry args={[3.7, 0.14, 1.52]} />
+            <meshPhysicalMaterial color="#c8bfb0" roughness={0.85} metalness={0} />
+          </mesh>
+          {/* heel block */}
+          <mesh position={[-1.0, 0.25, 0]} castShadow>
+            <boxGeometry args={[1.6, 0.50, 1.48]} />
+            <LiveMat color={bc} roughness={0.5} metalness={0.02} clearcoat={0.35} />
+          </mesh>
+          {/* toe ramp */}
+          <mesh position={[0.85, 0.10, 0]} castShadow>
+            <boxGeometry args={[2.0, 0.18, 1.44]} />
+            <LiveMat color={bc} roughness={0.5} metalness={0.02} clearcoat={0.35} />
+          </mesh>
+        </group>
+      ) : style === 'platform' ? (
+        // Platform: tall flat cylinder stack
+        <group>
+          <mesh scale={[1.9, 0.14, 0.78]} position={[0, 0, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[1, 1, 1, 56]} />
+            <meshPhysicalMaterial color="#a09588" roughness={0.9} metalness={0} />
+          </mesh>
+          {/* chunky mid-platform — two colored layers */}
+          <mesh scale={[1.82, 0.30, 0.74]} position={[0, 0.22, 0]} castShadow>
+            <cylinderGeometry args={[1, 1, 1, 56]} />
+            <LiveMat color={bc} roughness={0.45} metalness={0.03} clearcoat={0.5} />
+          </mesh>
+          <mesh scale={[1.78, 0.24, 0.71]} position={[0, 0.50, 0]} castShadow>
+            <cylinderGeometry args={[1, 1, 1, 56]} />
+            <meshPhysicalMaterial color="#e8dfd0" roughness={0.6} metalness={0} />
+          </mesh>
+        </group>
+      ) : style === 'cloud' ? (
+        // Cloud: puffy bumpy base — multiple overlapping spheres
+        <group>
+          {[
+            [0, 0, 0, 1.0],
+            [0.55, 0.03, 0, 0.85],
+            [-0.55, 0.03, 0, 0.85],
+            [0.28, 0.08, 0.22, 0.72],
+            [-0.28, 0.08, 0.22, 0.72],
+            [0.28, 0.08, -0.22, 0.72],
+            [-0.28, 0.08, -0.22, 0.72],
+          ].map(([x, y, z, r], i) => (
+            <mesh key={i} position={[x as number * 1.5, (y as number) * 0.6 + 0.14, (z as number) * 1.8]} scale={[(r as number)*1.05, r as number * 0.55, (r as number) * 0.95]} castShadow>
+              <sphereGeometry args={[1, 24, 16]} />
+              <LiveMat color={bc} roughness={0.25} metalness={0} clearcoat={0.8} />
+            </mesh>
+          ))}
+          {/* flat footbed on top */}
+          <mesh scale={[1.65, 0.05, 0.64]} position={[0, 0.38, 0]}>
+            <cylinderGeometry args={[1, 1, 1, 48]} />
+            <meshPhysicalMaterial color="#e8dfd0" roughness={0.6} metalness={0} />
+          </mesh>
+        </group>
+      ) : style === 'flipflop' ? (
+        // Flip-flop: super thin flat sole
+        <group>
+          <mesh scale={[1.9, 0.08, 0.78]} position={[0, 0, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[1, 1, 1, 56]} />
+            <meshPhysicalMaterial color="#c8bfb0" roughness={0.85} metalness={0} />
+          </mesh>
+          <mesh scale={[1.78, 0.06, 0.72]} position={[0, 0.07, 0]} castShadow>
+            <cylinderGeometry args={[1, 1, 1, 56]} />
+            <LiveMat color={bc} roughness={0.5} metalness={0.02} clearcoat={0.35} />
+          </mesh>
+        </group>
+      ) : (
+        // Default (slide / thong / mule)
+        <group>
+          <mesh scale={[1.9, 0.16, 0.78]} position={[0, 0, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[1, 1, 1, 56]} />
+            <meshPhysicalMaterial color="#c8bfb0" roughness={0.85} metalness={0} />
+          </mesh>
+          <mesh scale={[1.85, 0.04, 0.74]} position={[0, -0.06, 0]}>
+            <cylinderGeometry args={[1, 1.08, 1, 56]} />
+            <meshPhysicalMaterial color="#a09588" roughness={0.9} metalness={0} />
+          </mesh>
+          <mesh scale={[1.78, mh, 0.72]} position={[0, my, 0]} castShadow>
+            <cylinderGeometry args={[1, 1, 1, 56]} />
+            <LiveMat color={bc} roughness={0.5} metalness={0.02} clearcoat={0.35} />
+          </mesh>
+          <mesh scale={[1.68, 0.04, 0.66]} position={[0, 0.30, 0]}>
+            <cylinderGeometry args={[1, 1, 1, 56]} />
+            <meshPhysicalMaterial color="#e8dfd0" roughness={0.65} metalness={0} />
+          </mesh>
+        </group>
+      )}
 
-      {/* EVA midsole — colored */}
-      <mesh scale={[1.78, 0.20, 0.72]} position={[0, 0.18, 0]} castShadow>
-        <cylinderGeometry args={[1, 1, 1, 56]} />
-        <LiveMat color={bc} roughness={0.5} metalness={0.02} clearcoat={0.35} />
-      </mesh>
-
-      {/* Footbed */}
-      <mesh scale={[1.68, 0.04, 0.66]} position={[0, 0.30, 0]}>
-        <cylinderGeometry args={[1, 1, 1, 56]} />
-        <meshPhysicalMaterial color="#e8dfd0" roughness={0.65} metalness={0} />
-      </mesh>
-
-      {/* Strap */}
+      {/* ── Strap — shared across all styles ── */}
       <AnimPart show={showStrap}>
-        {style === 'slide' && (
-          <mesh position={[0.15, 0.44, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        {(style === 'slide' || style === 'platform') && (
+          <mesh position={[0.15, sy, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
             <capsuleGeometry args={[0.22, 1.30, 10, 28]} />{sm}
           </mesh>
         )}
-        {style === 'thong' && <>
-          <mesh position={[0.88, 0.38, 0]} castShadow>
+        {(style === 'thong' || style === 'flipflop') && <>
+          {/* toe post */}
+          <mesh position={[0.88, sy - 0.06, 0]} castShadow>
             <capsuleGeometry args={[0.07, 0.18, 4, 14]} />{sm}
           </mesh>
-          <mesh position={[0.28, 0.36, -0.30]} rotation={[Math.PI / 2, -2.03, 0]} castShadow>
+          {/* left strap */}
+          <mesh position={[0.28, sy - 0.08, -0.30]} rotation={[Math.PI / 2, -2.03, 0]} castShadow>
             <capsuleGeometry args={[0.07, 1.35, 4, 16]} />{sm}
           </mesh>
-          <mesh position={[0.28, 0.36, 0.30]} rotation={[Math.PI / 2, -1.11, 0]} castShadow>
+          {/* right strap */}
+          <mesh position={[0.28, sy - 0.08, 0.30]} rotation={[Math.PI / 2, -1.11, 0]} castShadow>
             <capsuleGeometry args={[0.07, 1.35, 4, 16]} />{sm}
           </mesh>
         </>}
-        {style === 'mule' && <>
-          <mesh position={[0.48, 0.44, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        {(style === 'mule' || style === 'wedge') && <>
+          <mesh position={[0.48, sy, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
             <capsuleGeometry args={[0.14, 1.30, 8, 22]} />{sm}
           </mesh>
-          <mesh position={[-0.22, 0.44, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <mesh position={[-0.22, sy, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
             <capsuleGeometry args={[0.14, 1.30, 8, 22]} />{sm}
           </mesh>
         </>}
+        {style === 'cloud' && (
+          // Soft single wide band for cloud slide
+          <mesh position={[0.1, sy, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <capsuleGeometry args={[0.26, 1.20, 12, 32]} />{sm}
+          </mesh>
+        )}
       </AnimPart>
     </group>
   );
@@ -150,15 +250,15 @@ function ColorDot({ color, selected, onClick }: { color: string; selected: boole
 function StyleBtn({ item, active, onClick }: { item: typeof SLIPPER_STYLES[0]; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className={`flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl border-2 transition-all ${
+      className={`flex flex-col items-center gap-1.5 px-2.5 py-2 rounded-xl border-2 transition-all shrink-0 ${
         active ? 'border-cyan-400 bg-cyan-50' : 'border-gray-200 hover:border-gray-300'
       }`}
     >
-      <svg width="56" height="32" viewBox="0 0 56 32">
-        <ellipse cx="28" cy="24" rx="24" ry="8" fill={active ? '#e0f9ff' : '#f0f0f0'} />
+      <svg width="48" height="28" viewBox="0 0 56 32">
+        <ellipse cx="28" cy="26" rx="24" ry="7" fill={active ? '#e0f9ff' : '#f0f0f0'} />
         <path d={item.svgPath} stroke={active ? '#06b6d4' : '#999'} strokeWidth="2.5" fill="none" strokeLinecap="round" />
       </svg>
-      <span className={`text-[10px] font-semibold ${active ? 'text-cyan-600' : 'text-gray-500'}`}>{item.name}</span>
+      <span className={`text-[9px] font-semibold whitespace-nowrap ${active ? 'text-cyan-600' : 'text-gray-500'}`}>{item.name}</span>
     </button>
   );
 }
@@ -271,7 +371,8 @@ export default function SlipperCustomizer() {
                 <div className="space-y-3">
                   <div>
                     <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Slipper Style</p>
-                    <div className="flex gap-2 flex-wrap">
+                    {/* Horizontally scrollable row to fit all 7 styles */}
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
                       {SLIPPER_STYLES.map(s => (
                         <StyleBtn key={s.id} item={s} active={sel.style === s.id} onClick={() => set('style', s.id)} />
                       ))}
