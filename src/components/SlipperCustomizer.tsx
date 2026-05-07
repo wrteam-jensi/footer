@@ -183,13 +183,13 @@ export default function SlipperCustomizer() {
 
   return (
     <section className="w-full bg-white">
-      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-[45%_55%] min-h-[680px]">
+      <div className="max-w-[1400px] mx-auto flex flex-col lg:grid lg:grid-cols-[45%_55%] lg:min-h-[680px]">
 
         {/* ── LEFT: 3D canvas ──────────────────────────────────── */}
-        <div className="relative bg-gradient-to-br from-[#ddeeff] to-[#eef6ff] flex items-center justify-center overflow-hidden"
-          style={{ minHeight: 480 }}>
-          <Canvas shadows camera={{ position: [0, 1.8, 7], fov: 36 }} className="w-full h-full"
-            style={{ height: '100%', minHeight: 480 }}>
+        <div className="relative bg-linear-to-br from-[#ddeeff] to-[#eef6ff] flex items-center justify-center overflow-hidden"
+          style={{ minHeight: 320 }}>
+          <Canvas shadows camera={{ position: [0, 1.8, 7], fov: 36 }} className="w-full"
+            style={{ height: '100%', minHeight: 320, maxHeight: 560 }}>
             <color attach="background" args={['#e8f2fa']} />
             <ambientLight intensity={0.9} />
             <directionalLight position={[4, 8, 6]} intensity={1.4} castShadow shadow-mapSize={1024} />
@@ -237,41 +237,41 @@ export default function SlipperCustomizer() {
         </div>
 
         {/* ── RIGHT: Config panel ───────────────────────────────── */}
-        <div className="bg-white flex flex-col border-l border-gray-100 overflow-y-auto max-h-[680px]">
+        <div className="bg-white flex flex-col border-t lg:border-t-0 lg:border-l border-gray-100">
           {/* Header + steps */}
-          <div className="px-6 pt-5 pb-4 border-b border-gray-100">
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-3">DESIGN YOUR SLIPPERS</h2>
+          <div className="px-4 md:px-6 pt-4 md:pt-5 pb-3 md:pb-4 border-b border-gray-100">
+            <h2 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight mb-2 md:mb-3">DESIGN YOUR SLIPPERS</h2>
             <div className="flex items-center gap-1 flex-wrap">
               {STEPS.map((s, i) => (
-                <div key={s} className="flex items-center gap-1">
+                <div key={s} className="flex items-center gap-0.5">
                   <button onClick={() => setCurrentStep(i)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] md:text-[10px] font-bold transition-all ${
                       i === currentStep ? 'bg-cyan-400 text-black' :
                       i < currentStep  ? 'bg-gray-100 text-gray-500' : 'text-gray-400'
                     }`}
                   >
-                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ${
+                    <span className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-full flex items-center justify-center text-[8px] font-black ${
                       i === currentStep ? 'bg-black/15 text-black' : 'bg-gray-200 text-gray-500'
                     }`}>{i < currentStep ? '✓' : i + 1}</span>
-                    {s}
+                    <span className="hidden sm:inline">{s}</span>
                   </button>
-                  {i < STEPS.length - 1 && <span className="text-gray-300 text-xs">→</span>}
+                  {i < STEPS.length - 1 && <span className="text-gray-200 text-[10px]">›</span>}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* 3-column grid */}
-          <div className="flex-1 grid grid-cols-3 divide-x divide-gray-100 overflow-hidden">
+          {/* Responsive grid: 1-col mobile → 2-col md → 3-col lg */}
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 md:divide-x divide-gray-100 overflow-y-auto lg:overflow-hidden">
 
             {/* ── COL 1: Base & Strap ──────────────────────────── */}
-            <div className="p-4 space-y-5 overflow-y-auto">
+            <div className="p-4 md:p-4 space-y-5 overflow-y-auto border-b md:border-b-0 border-gray-100">
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider mb-3">1. Base & Type</h3>
                 <div className="space-y-3">
                   <div>
                     <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Slipper Style</p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {SLIPPER_STYLES.map(s => (
                         <StyleBtn key={s.id} item={s} active={sel.style === s.id} onClick={() => set('style', s.id)} />
                       ))}
@@ -322,7 +322,7 @@ export default function SlipperCustomizer() {
             </div>
 
             {/* ── COL 2: Graphics & Text ───────────────────────── */}
-            <div className="p-4 space-y-4 overflow-y-auto">
+            <div className="p-4 space-y-4 overflow-y-auto border-b md:border-b-0 border-gray-100">
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider mb-3">3. Graphics & Embroidery</h3>
                 <p className="text-[10px] font-semibold text-gray-500 mb-2">Upload Your Design</p>
@@ -412,11 +412,12 @@ export default function SlipperCustomizer() {
             </div>
 
             {/* ── COL 3: Preview + Price ───────────────────────── */}
-            <div className="p-4 flex flex-col gap-4 overflow-y-auto">
+            {/* On md: spans 2 cols so price/CTA stays accessible. On lg: normal 1 col */}
+            <div className="p-4 flex flex-col gap-4 md:col-span-2 lg:col-span-1 overflow-y-auto lg:overflow-y-auto bg-gray-50 lg:bg-white">
               {/* Mini preview thumbnails */}
               <div>
                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-2">Preview</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
                   {['Left', 'Right'].map(side => (
                     <div key={side} className="aspect-square rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center overflow-hidden relative">
                       <svg width="70" height="45" viewBox="0 0 70 45">
