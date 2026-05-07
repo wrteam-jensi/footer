@@ -4,459 +4,524 @@ import { useState, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Float, ContactShadows } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Maximize2, Minimize2, ShoppingCart, Camera, ChevronDown, Check, ArrowRight } from 'lucide-react';
-import FootScanner from './FootScanner';
+import { Check, ChevronLeft, ShoppingCart, Maximize2, Minimize2 } from 'lucide-react';
 
 // ── Data ────────────────────────────────────────────────────────
 const BASES = [
-  { id: 'cyan',   color: '#00e5ff', name: 'NEON CYAN',       price: 129 },
-  { id: 'purple', color: '#a855f7', name: 'PHANTOM PURPLE',  price: 139 },
-  { id: 'black',  color: '#1a1a1a', name: 'OBSIDIAN',        price: 119 },
+  { id: 'cyan',   color: '#00e5ff', name: 'NEON CYAN',      price: 129 },
+  { id: 'purple', color: '#a855f7', name: 'PHANTOM PURPLE', price: 139 },
+  { id: 'black',  color: '#1c1c1c', name: 'OBSIDIAN',       price: 119 },
   { id: 'red',    color: '#ef4444', name: 'VULCAN RED',      price: 129 },
+  { id: 'sand',   color: '#d4b896', name: 'DESERT SAND',    price: 119 },
+  { id: 'green',  color: '#22c55e', name: 'NEON GREEN',     price: 134 },
 ];
 
-const BELTS = [
-  { id: 'carbon', color: '#2a2a2a', label: '#1c1c1c', name: 'CARBON MATTE',   finish: 'Matte rubberised' },
-  { id: 'gold',   color: '#fbbf24', label: '#fbbf24', name: 'METALLIC GOLD',  finish: 'Brushed metallic' },
-  { id: 'white',  color: '#e8e8e8', label: '#ffffff', name: 'PURE WHITE',     finish: 'Gloss coated' },
-  { id: 'smoke',  color: '#6b7280', label: '#6b7280', name: 'SMOKE GREY',     finish: 'Soft touch' },
+const STRAP_TYPES = [
+  { id: 'arch',  name: 'ARCH STRAP', desc: 'Classic V-arch slides' },
+  { id: 'band',  name: 'WIDE BAND',  desc: 'Wrapped single-piece band' },
+  { id: 'cross', name: 'CROSS',      desc: 'X-cross open design' },
+  { id: 'open',  name: 'OPEN MULE',  desc: 'Backless, no strap' },
 ];
 
-const BADGES = [
-  { id: 'none',   icon: null,  name: 'CLEAN' },
-  { id: 'zap',    icon: '⚡',   name: 'BOLT' },
-  { id: 'star',   icon: '✦',   name: 'PRIME' },
-  { id: 'b',      icon: 'B',   name: 'BRAND' },
+const STRAPS = [
+  { id: 'carbon', color: '#1e1e1e', name: 'CARBON MATTE',  finish: 'Matte rubber' },
+  { id: 'gold',   color: '#f59e0b', name: 'METALLIC GOLD', finish: 'Brushed metal' },
+  { id: 'white',  color: '#e8e8e8', name: 'PURE WHITE',    finish: 'Gloss coated' },
+  { id: 'smoke',  color: '#6b7280', name: 'SMOKE GREY',    finish: 'Soft-touch' },
+  { id: 'navy',   color: '#1e3a5f', name: 'DEEP NAVY',     finish: 'Matte fabric' },
+  { id: 'rose',   color: '#f43f5e', name: 'ROSE CHROME',   finish: 'Chrome mirror' },
 ];
 
-const SIZES = [
-  { id: 'S', label: 'S', eu: '38–40', uk: '5–7',   scale: 0.87 },
-  { id: 'M', label: 'M', eu: '41–43', uk: '7–9',   scale: 1.0  },
-  { id: 'L', label: 'L', eu: '44–46', uk: '9–11',  scale: 1.13 },
+const CHARMS = [
+  { id: 'none',      icon: null,  name: 'CLEAN' },
+  { id: 'bolt',      icon: '⚡',   name: 'BOLT' },
+  { id: 'star',      icon: '✦',   name: 'PRIME' },
+  { id: 'crystal',   icon: '◈',   name: 'CRYSTAL' },
+  { id: 'b',         icon: 'B',   name: 'BRAND' },
+  { id: 'infinity',  icon: '∞',   name: 'INFINITY' },
 ];
 
-const BRANDS: { id: string; name: string; sizes: Record<string, string> }[] = [
-  { id: 'nike',       name: 'Nike',        sizes: { '6':'S','7':'S','8':'M','9':'M','10':'L','11':'L','12':'L' } },
-  { id: 'adidas',     name: 'Adidas',      sizes: { '6':'S','7':'S','8':'M','9':'M','10':'L','11':'L','12':'L' } },
-  { id: 'puma',       name: 'Puma',        sizes: { '6':'S','7':'S','8':'M','9':'M','10':'L','11':'L','12':'L' } },
-  { id: 'newbalance', name: 'New Balance', sizes: { '6':'S','7':'S','8':'M','9':'M','10':'L','11':'L','12':'L' } },
-  { id: 'hm',         name: 'H&M',         sizes: { '38':'S','39':'S','40':'S','41':'M','42':'M','43':'M','44':'L','45':'L','46':'L' } },
-  { id: 'zara',       name: 'Zara',        sizes: { '38':'S','39':'S','40':'S','41':'M','42':'M','43':'M','44':'L','45':'L','46':'L' } },
+const STEPS = [
+  { n: 1, label: 'BASE'  },
+  { n: 2, label: 'TYPE'  },
+  { n: 3, label: 'STRAP' },
+  { n: 4, label: 'CHARM' },
 ];
-
-const TABS = ['COLOR', 'STRAP', 'BADGE', 'SIZE'];
 
 // ── 3D Model ────────────────────────────────────────────────────
-function SlipperMesh({ base, belt, badge, size }: { base: string; belt: string; badge: string; size: string }) {
-  const baseObj = BASES.find(b => b.id === base)  ?? BASES[0];
-  const beltObj = BELTS.find(b => b.id === belt)  ?? BELTS[0];
-  const sizeObj = SIZES.find(s => s.id === size)  ?? SIZES[1];
+function SlipperMesh({ base, strapType, strap }: {
+  base: string; strapType: string; strap: string;
+}) {
+  const baseColor = BASES.find(b => b.id === base)?.color   ?? '#00e5ff';
+  const beltColor = STRAPS.find(s => s.id === strap)?.color ?? '#1e1e1e';
 
-  const baseColor = baseObj.color;
-  const beltColor = beltObj.color;
+  const strapMat = (
+    <meshStandardMaterial color={beltColor} roughness={0.2} metalness={0.5} />
+  );
 
-  // Scaled-sphere gives a genuine flat oval silhouette — capsule always reads as a pill.
-  // Slipper local space: length along X, thin in Y, width along Z.
-  // Group rotation tilts it into a 3/4 perspective view.
   return (
-    <Float speed={1.4} rotationIntensity={0.18} floatIntensity={0.28}>
-      <group rotation={[0.32, -0.52, 0.06]} scale={sizeObj.scale}>
+    <Float speed={1.3} rotationIntensity={0.15} floatIntensity={0.25}>
+      <group rotation={[0.32, -0.52, 0.06]}>
 
-        {/* Rubber outer sole — very flat dark ellipsoid */}
-        <mesh scale={[1.85, 0.13, 0.7]} castShadow receiveShadow>
+        {/* Rubber outer sole — flat dark ellipsoid */}
+        <mesh scale={[1.85, 0.13, 0.72]} castShadow receiveShadow>
           <sphereGeometry args={[1, 48, 32]} />
-          <meshStandardMaterial color="#0c0c0c" roughness={0.9} metalness={0} />
+          <meshStandardMaterial color="#0a0a0a" roughness={0.92} metalness={0} />
         </mesh>
 
-        {/* EVA midsole — colored, slightly domed */}
-        <mesh scale={[1.68, 0.29, 0.62]} position={[0, 0.23, 0]} castShadow>
+        {/* EVA midsole — main color, domed */}
+        <mesh scale={[1.68, 0.31, 0.63]} position={[0, 0.24, 0]} castShadow>
           <sphereGeometry args={[1, 48, 32]} />
           <meshStandardMaterial
             color={baseColor}
-            roughness={0.34}
+            roughness={0.33}
             metalness={0.07}
             emissive={baseColor}
-            emissiveIntensity={0.08}
+            emissiveIntensity={0.09}
           />
         </mesh>
 
-        {/* Footbed surface — thin top layer, slightly darker */}
-        <mesh scale={[1.55, 0.1, 0.56]} position={[0, 0.51, 0]}>
+        {/* Footbed top surface */}
+        <mesh scale={[1.55, 0.09, 0.57]} position={[0, 0.52, 0]}>
           <sphereGeometry args={[1, 48, 32]} />
-          <meshStandardMaterial color={baseColor} roughness={0.55} metalness={0} />
+          <meshStandardMaterial color={baseColor} roughness={0.6} metalness={0} />
         </mesh>
 
-        {/*
-          Strap: two angled arms + horizontal bridge.
-          Arms start at foot-width edges (Z ≈ ±0.52) and lean inward to meet the bridge.
-          CapsuleGeometry default axis = Y. X-rotation tilts the Y-axis toward ±Z.
-          Left arm at -Z needs top to tilt toward +Z → positive X rotation.
-          Right arm at +Z needs top to tilt toward -Z → negative X rotation.
-        */}
+        {/* ── Strap geometry by type ── */}
 
-        {/* Strap left arm */}
-        <mesh position={[0.28, 0.66, -0.52]} rotation={[0.72, 0, 0.1]} castShadow>
-          <capsuleGeometry args={[0.1, 0.78, 6, 18]} />
-          <meshStandardMaterial color={beltColor} roughness={0.2} metalness={0.5} />
-        </mesh>
-
-        {/* Strap right arm */}
-        <mesh position={[0.28, 0.66, 0.52]} rotation={[-0.72, 0, 0.1]} castShadow>
-          <capsuleGeometry args={[0.1, 0.78, 6, 18]} />
-          <meshStandardMaterial color={beltColor} roughness={0.2} metalness={0.5} />
-        </mesh>
-
-        {/* Strap bridge — horizontal capsule spanning Z-width */}
-        <mesh position={[0.28, 1.02, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <capsuleGeometry args={[0.1, 0.9, 6, 18]} />
-          <meshStandardMaterial color={beltColor} roughness={0.2} metalness={0.5} />
-        </mesh>
-
-        {/* Badge — small embossed sphere on strap */}
-        {badge !== 'none' && (
-          <mesh position={[0.28, 1.02, 0]}>
-            <sphereGeometry args={[0.14, 20, 20]} />
-            <meshStandardMaterial color="#fff" roughness={0.08} metalness={0.9} emissive="#fff" emissiveIntensity={0.2} />
-          </mesh>
+        {strapType === 'arch' && (
+          <group>
+            {/* Left arm: at -Z, tilts inward (+X rotation) */}
+            <mesh position={[0.28, 0.68, -0.53]} rotation={[0.7, 0, 0.08]} castShadow>
+              <capsuleGeometry args={[0.1, 0.78, 6, 20]} />
+              {strapMat}
+            </mesh>
+            {/* Right arm: at +Z, tilts inward (-X rotation) */}
+            <mesh position={[0.28, 0.68, 0.53]} rotation={[-0.7, 0, 0.08]} castShadow>
+              <capsuleGeometry args={[0.1, 0.78, 6, 20]} />
+              {strapMat}
+            </mesh>
+            {/* Bridge */}
+            <mesh position={[0.28, 1.04, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+              <capsuleGeometry args={[0.1, 0.95, 6, 20]} />
+              {strapMat}
+            </mesh>
+          </group>
         )}
+
+        {strapType === 'band' && (
+          <group>
+            {/* Wide rounded band lying horizontally */}
+            <mesh position={[0.25, 0.72, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+              <capsuleGeometry args={[0.24, 1.1, 10, 28]} />
+              {strapMat}
+            </mesh>
+          </group>
+        )}
+
+        {strapType === 'cross' && (
+          <group>
+            {/* Strap going front-left → back-right */}
+            <mesh position={[0.2, 0.68, 0]} rotation={[0, 0.58, 0.08]} castShadow>
+              <capsuleGeometry args={[0.1, 1.45, 6, 20]} />
+              {strapMat}
+            </mesh>
+            {/* Strap going front-right → back-left */}
+            <mesh position={[0.2, 0.68, 0]} rotation={[0, -0.58, 0.08]} castShadow>
+              <capsuleGeometry args={[0.1, 1.45, 6, 20]} />
+              {strapMat}
+            </mesh>
+          </group>
+        )}
+
+        {/* OPEN: no strap element rendered */}
+
       </group>
     </Float>
   );
 }
 
-// ── Main Component ──────────────────────────────────────────────
+// ── Step indicator ───────────────────────────────────────────────
+function StepBar({ current }: { current: number }) {
+  return (
+    <div className="flex items-center gap-0">
+      {STEPS.map((s, i) => (
+        <div key={s.n} className="flex items-center flex-1">
+          <div className="flex flex-col items-center gap-1.5">
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 ${
+              i < current  ? 'bg-cyan-500 text-black' :
+              i === current ? 'bg-white text-black scale-110' :
+              'bg-white/6 border border-white/10 text-neutral-700'
+            }`}>
+              {i < current ? <Check size={12} strokeWidth={3} /> : s.n}
+            </div>
+            <span className={`text-[8px] font-black tracking-[0.2em] transition-colors ${
+              i === current ? 'text-white' : i < current ? 'text-cyan-500' : 'text-neutral-700'
+            }`}>{s.label}</span>
+          </div>
+          {i < STEPS.length - 1 && (
+            <div className={`flex-1 h-px mx-2 mb-4 transition-colors duration-500 ${i < current ? 'bg-cyan-500' : 'bg-white/8'}`} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────
 export default function SlipperCustomizer() {
-  const [tab, setTab]       = useState(0);
-  const [expanded, setExpanded] = useState(false);
-  const [showScanner, setShowScanner] = useState(false);
-  const [brandId, setBrandId]         = useState('nike');
-  const [brandInput, setBrandInput]   = useState('');
-  const [convertResult, setConvertResult] = useState<string | null>(null);
+  const [step,      setStep]      = useState(0);
+  const [expanded,  setExpanded]  = useState(false);
+  const [sel, setSel] = useState({
+    base: '',  strapType: '',  strap: '',  charm: '',
+  });
 
-  const [sel, setSel] = useState({ base: 'cyan', belt: 'carbon', badge: 'none', size: 'M' });
-  const set = (k: string, v: string) => setSel(p => ({ ...p, [k]: v }));
+  const set = (k: keyof typeof sel, v: string) => setSel(p => ({ ...p, [k]: v }));
 
-  const currentBase  = BASES.find(b => b.id === sel.base)!;
-  const currentBelt  = BELTS.find(b => b.id === sel.belt)!;
-  const currentSize  = SIZES.find(s => s.id === sel.size)!;
+  const stepKey   = (['base', 'strapType', 'strap', 'charm'] as const)[step];
+  const hasChoice = !!sel[stepKey];
+  const isDone    = step === 4;
 
-  const handleConvert = () => {
-    const brand = BRANDS.find(b => b.id === brandId);
-    if (!brand) return;
-    const mapped = brand.sizes[brandInput.trim()];
-    setConvertResult(mapped ?? null);
-    if (mapped) set('size', mapped);
-  };
+  const currentBase  = BASES.find(b => b.id === sel.base);
+  const currentStrap = STRAPS.find(s => s.id === sel.strap);
+  const price        = (currentBase?.price ?? 129) + (sel.charm !== 'none' && sel.charm ? 10 : 0);
 
   return (
-    <section className="w-full bg-[#050505] py-16 px-4 md:px-6 relative overflow-hidden">
-      {/* Ambient glow */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[140px]"
-          style={{ backgroundColor: `${currentBase.color}0a` }} />
-      </div>
+    <section className="w-full bg-[#060606] py-12 px-4 md:px-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-6 items-start">
 
-      <div className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 items-start">
-
-        {/* ─── 3D Viewport ─────────────────────────────────────── */}
-        <div className={`relative rounded-3xl bg-neutral-950 border border-white/6 overflow-hidden transition-all duration-700 ${
-          expanded ? 'fixed inset-4 z-[100] rounded-2xl' : 'h-[480px] lg:h-[640px]'
+        {/* ── 3D Viewport ──────────────────────────────────────── */}
+        <div className={`relative rounded-3xl bg-[#0d0d0d] border border-white/5 overflow-hidden transition-all duration-500 ${
+          expanded ? 'fixed inset-4 z-100 rounded-2xl' : 'h-[460px] lg:h-[620px]'
         }`}>
-          {/* Top bar */}
-          <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-6 pt-6 pb-3 bg-gradient-to-b from-black/60 to-transparent">
+          {/* Header */}
+          <div className="absolute top-0 inset-x-0 z-10 flex items-start justify-between px-6 pt-5 pb-8 bg-linear-to-b from-black/70 to-transparent pointer-events-none">
             <div>
-              <div className="text-[9px] font-mono text-neutral-600 tracking-[0.35em] mb-0.5">LIVE PREVIEW · BEYOND_O1</div>
-              <div className="text-xl font-black text-white tracking-tight">STRIDE ONE</div>
+              <div className="text-[8px] font-mono text-neutral-700 tracking-[0.4em] mb-0.5">LIVE CONFIG · BEYOND_O1</div>
+              <div className="text-lg font-black text-white tracking-tight">STRIDE ONE</div>
             </div>
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="w-9 h-9 rounded-full bg-white/6 border border-white/10 flex items-center justify-center text-neutral-500 hover:text-white hover:bg-white/12 transition-all"
-            >
-              {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-            </button>
           </div>
 
-          {/* Canvas */}
+          <button onClick={() => setExpanded(!expanded)}
+            className="absolute top-5 right-5 z-20 w-8 h-8 rounded-full bg-white/6 border border-white/8 flex items-center justify-center text-neutral-600 hover:text-white transition-colors">
+            {expanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          </button>
+
           <Canvas shadows camera={{ position: [1.5, 2.5, 8], fov: 36 }}>
-            <ambientLight intensity={0.45} />
+            <ambientLight intensity={0.4} />
             <directionalLight position={[4, 7, 6]} intensity={1.4} castShadow shadow-mapSize={1024} />
             <directionalLight position={[-5, 2, -3]} intensity={0.35} color="#00e5ff" />
-            <pointLight position={[0, 4, 2]} intensity={0.3} color="#ffffff" />
             <Suspense fallback={null}>
-              <SlipperMesh base={sel.base} belt={sel.belt} badge={sel.badge} size={sel.size} />
-              <ContactShadows position={[0, -2.4, 0]} opacity={0.4} scale={8} blur={2} />
+              <SlipperMesh
+                base={sel.base || 'cyan'}
+                strapType={sel.strapType || 'arch'}
+                strap={sel.strap || 'carbon'}
+              />
+              <ContactShadows position={[0, -1.5, 0]} opacity={0.35} scale={8} blur={2.5} />
               <Environment preset="studio" />
             </Suspense>
-            <OrbitControls
-              enableZoom={expanded}
-              enablePan={false}
-              autoRotate={!expanded}
-              autoRotateSpeed={0.6}
-              minPolarAngle={Math.PI / 4}
-              maxPolarAngle={Math.PI / 1.8}
-            />
+            <OrbitControls enableZoom={expanded} enablePan={false}
+              autoRotate={!expanded} autoRotateSpeed={0.5}
+              minPolarAngle={Math.PI / 5} maxPolarAngle={Math.PI / 1.9} />
           </Canvas>
 
-          {/* Bottom config chips */}
-          <div className="absolute bottom-0 inset-x-0 flex items-center gap-2 px-6 pb-6 pt-8 bg-gradient-to-t from-black/70 to-transparent">
-            {[
-              { dot: currentBase.color, label: currentBase.name },
-              { dot: currentBelt.label, label: currentBelt.name },
-              { dot: null,              label: `SIZE ${sel.size} · EU ${currentSize.eu}` },
-            ].map(c => (
-              <div key={c.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 border border-white/8 backdrop-blur-sm">
-                {c.dot && <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.dot }} />}
-                <span className="text-[9px] font-mono text-neutral-400 tracking-widest whitespace-nowrap">{c.label}</span>
-              </div>
-            ))}
-          </div>
+          {/* Bottom config strip */}
+          {(sel.base || sel.strapType || sel.strap) && (
+            <div className="absolute bottom-0 inset-x-0 px-5 pb-5 pt-10 bg-linear-to-t from-black/80 to-transparent flex items-center gap-2 flex-wrap">
+              {sel.base && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/60 border border-white/8 backdrop-blur-sm">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: currentBase?.color }} />
+                  <span className="text-[8px] font-mono text-neutral-400 tracking-widest">{currentBase?.name}</span>
+                </div>
+              )}
+              {sel.strapType && (
+                <div className="px-2.5 py-1.5 rounded-full bg-black/60 border border-white/8 backdrop-blur-sm">
+                  <span className="text-[8px] font-mono text-neutral-400 tracking-widest">
+                    {STRAP_TYPES.find(t => t.id === sel.strapType)?.name}
+                  </span>
+                </div>
+              )}
+              {sel.strap && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/60 border border-white/8 backdrop-blur-sm">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: currentStrap?.color }} />
+                  <span className="text-[8px] font-mono text-neutral-400 tracking-widest">{currentStrap?.name}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* ─── Right panel ─────────────────────────────────────── */}
-        <div className="flex flex-col gap-4">
+        {/* ── Right panel ──────────────────────────────────────── */}
+        <div className="flex flex-col gap-5">
 
-          {/* Product info */}
-          <div className="px-1">
-            <div className="text-[9px] font-mono text-neutral-600 tracking-[0.4em] mb-1">BEYOND_O1 · SS'26</div>
-            <div className="flex items-end justify-between">
+          {/* Product header */}
+          <div className="flex items-end justify-between px-1">
+            <div>
+              <div className="text-[8px] font-mono text-neutral-700 tracking-[0.4em] mb-1">SS'26 · BEYOND_O1</div>
               <h2 className="text-3xl font-black text-white tracking-tight">STRIDE ONE</h2>
-              <div className="text-right">
-                <div className="text-xs text-neutral-600 font-mono">FROM</div>
-                <div className="text-2xl font-black text-white">${currentBase.price}</div>
+              <div className="flex items-center gap-1.5 mt-1">
+                <div className="flex gap-0.5">{[...Array(5)].map((_,i)=><span key={i} className="text-yellow-400 text-[10px]">★</span>)}</div>
+                <span className="text-[9px] font-mono text-neutral-700">4.9 · 2.1k</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 mt-1.5">
-              <div className="flex gap-0.5">{[...Array(5)].map((_,i) => <span key={i} className="text-yellow-400 text-xs">★</span>)}</div>
-              <span className="text-[10px] font-mono text-neutral-600">4.9 · 2.1k reviews</span>
+            <div className="text-right">
+              <div className="text-[9px] font-mono text-neutral-700">FROM</div>
+              <div className="text-2xl font-black text-white">${price}</div>
             </div>
           </div>
 
-          {/* Tab strip */}
-          <div className="flex bg-neutral-900/60 border border-white/6 rounded-2xl p-1 gap-1">
-            {TABS.map((t, i) => (
-              <button
-                key={t}
-                onClick={() => setTab(i)}
-                className={`flex-1 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all duration-200 ${
-                  tab === i
-                    ? 'bg-white text-black shadow-sm'
-                    : 'text-neutral-600 hover:text-neutral-300'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+          {/* Step progress */}
+          {!isDone && <StepBar current={step} />}
 
-          {/* Content panel */}
-          <div className="rounded-3xl bg-neutral-950/80 border border-white/6 overflow-hidden">
+          {/* Step content */}
+          <div className="rounded-3xl bg-[#0d0d0d] border border-white/5 overflow-hidden">
             <AnimatePresence mode="wait">
 
-              {/* ── COLOR tab */}
-              {tab === 0 && (
-                <motion.div key="color"
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.22 }}
-                  className="p-6 space-y-4"
+              {/* STEP 1: BASE */}
+              {step === 0 && (
+                <motion.div key="base"
+                  initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="p-6 space-y-5"
                 >
-                  <div className="text-[9px] font-mono text-neutral-600 tracking-[0.3em]">SELECT BASE COLOR</div>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div>
+                    <div className="text-[9px] font-mono text-neutral-600 tracking-[0.35em]">STEP 1 OF 4</div>
+                    <h3 className="text-xl font-black text-white mt-1">Choose Base Color</h3>
+                    <p className="text-[11px] text-neutral-600 mt-0.5">EVA foam sole · UV-stable pigment</p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
                     {BASES.map(b => (
                       <button key={b.id} onClick={() => set('base', b.id)}
-                        className="flex flex-col items-center gap-2.5 group"
-                      >
-                        <div className={`w-12 h-12 rounded-2xl transition-all duration-200 ${
+                        className={`group relative flex flex-col items-center gap-2.5 py-4 px-2 rounded-2xl border transition-all duration-200 ${
                           sel.base === b.id
-                            ? 'scale-110'
-                            : 'scale-100 opacity-70 group-hover:opacity-100 group-hover:scale-105'
+                            ? 'border-white/20 bg-white/5'
+                            : 'border-white/5 hover:border-white/10'
                         }`}
+                      >
+                        <div className="w-10 h-10 rounded-xl transition-all duration-200"
                           style={{
                             backgroundColor: b.color,
-                            boxShadow: sel.base === b.id
-                              ? `0 0 20px ${b.color}60, 0 0 0 2px #0a0a0a, 0 0 0 4px ${b.color}`
-                              : 'none',
+                            boxShadow: sel.base === b.id ? `0 0 18px ${b.color}55, 0 0 0 2px #0d0d0d, 0 0 0 3.5px ${b.color}` : 'none',
+                            transform: sel.base === b.id ? 'scale(1.12)' : 'scale(1)',
                           }}
-                        >
-                          {sel.base === b.id && (
-                            <div className="w-full h-full rounded-2xl flex items-center justify-center">
-                              <Check size={16} className={b.id === 'black' ? 'text-white' : 'text-black/70'} strokeWidth={3} />
-                            </div>
-                          )}
-                        </div>
-                        <span className={`text-[8px] font-black tracking-wider text-center leading-tight transition-colors ${
+                        />
+                        <span className={`text-[8px] font-black tracking-wider text-center leading-tight ${
                           sel.base === b.id ? 'text-white' : 'text-neutral-600 group-hover:text-neutral-400'
                         }`}>{b.name}</span>
+                        {sel.base === b.id && (
+                          <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-cyan-500 flex items-center justify-center">
+                            <Check size={9} strokeWidth={3} className="text-black" />
+                          </div>
+                        )}
                       </button>
                     ))}
-                  </div>
-
-                  <div className="pt-2 px-4 py-3 rounded-2xl bg-white/3 border border-white/5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-xs font-black text-white">{currentBase.name}</div>
-                        <div className="text-[10px] font-mono text-neutral-600 mt-0.5">Aerospace-grade EVA foam · UV stable</div>
-                      </div>
-                      <div className="text-xl font-black text-white">${currentBase.price}</div>
-                    </div>
                   </div>
                 </motion.div>
               )}
 
-              {/* ── STRAP tab */}
-              {tab === 1 && (
-                <motion.div key="strap"
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.22 }}
-                  className="p-6 space-y-4"
+              {/* STEP 2: STRAP TYPE */}
+              {step === 1 && (
+                <motion.div key="type"
+                  initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="p-6 space-y-5"
                 >
-                  <div className="text-[9px] font-mono text-neutral-600 tracking-[0.3em]">SELECT STRAP MATERIAL</div>
-                  <div className="space-y-2">
-                    {BELTS.map(b => (
-                      <button key={b.id} onClick={() => set('belt', b.id)}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border transition-all duration-200 ${
-                          sel.belt === b.id
-                            ? 'border-white/20 bg-white/5'
-                            : 'border-white/5 hover:border-white/10 bg-transparent'
+                  <div>
+                    <div className="text-[9px] font-mono text-neutral-600 tracking-[0.35em]">STEP 2 OF 4</div>
+                    <h3 className="text-xl font-black text-white mt-1">Choose Strap Style</h3>
+                    <p className="text-[11px] text-neutral-600 mt-0.5">Select a strap design — updates live in viewport</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {STRAP_TYPES.map(t => (
+                      <button key={t.id} onClick={() => set('strapType', t.id)}
+                        className={`flex flex-col items-start gap-2 p-4 rounded-2xl border transition-all duration-200 ${
+                          sel.strapType === t.id
+                            ? 'border-white/25 bg-white/6'
+                            : 'border-white/5 hover:border-white/12'
                         }`}
                       >
-                        <div className="w-8 h-8 rounded-xl shrink-0 border border-white/10"
-                          style={{ backgroundColor: b.color, boxShadow: sel.belt === b.id ? `0 0 12px ${b.color}40` : 'none' }} />
-                        <div className="text-left flex-1">
-                          <div className={`text-xs font-black tracking-wider ${sel.belt === b.id ? 'text-white' : 'text-neutral-400'}`}>{b.name}</div>
-                          <div className="text-[10px] font-mono text-neutral-700 mt-0.5">{b.finish}</div>
+                        {/* Strap type SVG icon */}
+                        <div className="w-full h-12 flex items-center justify-center">
+                          {t.id === 'arch' && (
+                            <svg width="56" height="32" viewBox="0 0 56 32">
+                              <path d="M6 28 L20 8 L28 6 L36 8 L50 28" stroke={sel.strapType === t.id ? '#00e5ff' : '#444'} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+                            </svg>
+                          )}
+                          {t.id === 'band' && (
+                            <svg width="56" height="32" viewBox="0 0 56 32">
+                              <rect x="4" y="10" width="48" height="12" rx="6" fill={sel.strapType === t.id ? '#00e5ff' : '#444'} opacity="0.9" />
+                            </svg>
+                          )}
+                          {t.id === 'cross' && (
+                            <svg width="56" height="32" viewBox="0 0 56 32">
+                              <line x1="8" y1="28" x2="48" y2="4" stroke={sel.strapType === t.id ? '#00e5ff' : '#444'} strokeWidth="3.5" strokeLinecap="round" />
+                              <line x1="8" y1="4" x2="48" y2="28" stroke={sel.strapType === t.id ? '#00e5ff' : '#444'} strokeWidth="3.5" strokeLinecap="round" />
+                            </svg>
+                          )}
+                          {t.id === 'open' && (
+                            <svg width="56" height="32" viewBox="0 0 56 32">
+                              <ellipse cx="28" cy="20" rx="22" ry="8" fill={sel.strapType === t.id ? '#00e5ff' : '#333'} opacity="0.7" />
+                              <text x="28" y="14" textAnchor="middle" fontSize="9" fill={sel.strapType === t.id ? '#00e5ff' : '#555'} fontFamily="monospace">OPEN</text>
+                            </svg>
+                          )}
                         </div>
-                        {sel.belt === b.id && <Check size={14} className="text-cyan-400 shrink-0" strokeWidth={2.5} />}
+                        <div>
+                          <div className={`text-[10px] font-black tracking-widest ${sel.strapType === t.id ? 'text-white' : 'text-neutral-500'}`}>{t.name}</div>
+                          <div className="text-[9px] font-mono text-neutral-700 mt-0.5">{t.desc}</div>
+                        </div>
+                        {sel.strapType === t.id && (
+                          <div className="absolute top-3 right-3 w-4 h-4 rounded-full bg-cyan-500 flex items-center justify-center">
+                            <Check size={9} strokeWidth={3} className="text-black" />
+                          </div>
+                        )}
                       </button>
                     ))}
                   </div>
                 </motion.div>
               )}
 
-              {/* ── BADGE tab */}
-              {tab === 2 && (
-                <motion.div key="badge"
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.22 }}
-                  className="p-6 space-y-4"
+              {/* STEP 3: STRAP COLOR */}
+              {step === 2 && (
+                <motion.div key="strap"
+                  initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="p-6 space-y-5"
                 >
-                  <div className="text-[9px] font-mono text-neutral-600 tracking-[0.3em]">SELECT BADGE</div>
-                  <div className="grid grid-cols-4 gap-3">
-                    {BADGES.map(bg => (
-                      <button key={bg.id} onClick={() => set('badge', bg.id)}
-                        className={`aspect-square rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all duration-200 ${
-                          sel.badge === bg.id
-                            ? 'border-white/25 bg-white/8 text-white'
-                            : 'border-white/6 bg-white/2 text-neutral-700 hover:border-white/12 hover:text-neutral-400'
+                  <div>
+                    <div className="text-[9px] font-mono text-neutral-600 tracking-[0.35em]">STEP 3 OF 4</div>
+                    <h3 className="text-xl font-black text-white mt-1">Choose Strap Color</h3>
+                    <p className="text-[11px] text-neutral-600 mt-0.5">
+                      {STRAP_TYPES.find(t => t.id === sel.strapType)?.name} · pick material finish
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    {STRAPS.map(s => (
+                      <button key={s.id} onClick={() => set('strap', s.id)}
+                        className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl border transition-all duration-200 ${
+                          sel.strap === s.id
+                            ? 'border-white/20 bg-white/5'
+                            : 'border-white/5 hover:border-white/10'
                         }`}
                       >
-                        <span className="text-xl">{bg.icon ?? '–'}</span>
-                        <span className="text-[8px] font-black tracking-widest">{bg.name}</span>
+                        <div className="w-8 h-8 rounded-xl shrink-0 border border-white/10 transition-all"
+                          style={{
+                            backgroundColor: s.color,
+                            boxShadow: sel.strap === s.id ? `0 0 12px ${s.color}50` : 'none',
+                          }}
+                        />
+                        <div className="text-left flex-1">
+                          <div className={`text-[11px] font-black tracking-wider ${sel.strap === s.id ? 'text-white' : 'text-neutral-500'}`}>{s.name}</div>
+                          <div className="text-[9px] font-mono text-neutral-700">{s.finish}</div>
+                        </div>
+                        {sel.strap === s.id && <Check size={14} className="text-cyan-400 shrink-0" strokeWidth={2.5} />}
                       </button>
                     ))}
                   </div>
                 </motion.div>
               )}
 
-              {/* ── SIZE tab */}
-              {tab === 3 && (
-                <motion.div key="size"
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.22 }}
-                  className="p-6 space-y-4"
+              {/* STEP 4: CHARM */}
+              {step === 3 && (
+                <motion.div key="charm"
+                  initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="p-6 space-y-5"
                 >
-                  {/* Size grid */}
-                  <div className="text-[9px] font-mono text-neutral-600 tracking-[0.3em]">SELECT SIZE</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {SIZES.map(s => (
-                      <button key={s.id} onClick={() => set('size', s.id)}
-                        className={`py-4 rounded-2xl border flex flex-col items-center justify-center gap-1 transition-all duration-200 ${
-                          sel.size === s.id
-                            ? 'border-white/25 bg-white/8 text-white'
-                            : 'border-white/6 text-neutral-600 hover:border-white/12 hover:text-neutral-300'
+                  <div>
+                    <div className="text-[9px] font-mono text-neutral-600 tracking-[0.35em]">STEP 4 OF 4</div>
+                    <h3 className="text-xl font-black text-white mt-1">Choose Charm</h3>
+                    <p className="text-[11px] text-neutral-600 mt-0.5">Decorative accent on the strap · +$10</p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    {CHARMS.map(c => (
+                      <button key={c.id} onClick={() => set('charm', c.id)}
+                        className={`flex flex-col items-center justify-center gap-2 py-5 rounded-2xl border transition-all duration-200 ${
+                          sel.charm === c.id
+                            ? 'border-white/25 bg-white/7 text-white'
+                            : 'border-white/5 text-neutral-700 hover:border-white/12 hover:text-neutral-400'
                         }`}
                       >
-                        <span className="text-2xl font-black">{s.label}</span>
-                        <span className="text-[9px] font-mono text-neutral-600">EU {s.eu}</span>
+                        <span className="text-2xl leading-none">{c.icon ?? <span className="text-sm">—</span>}</span>
+                        <span className={`text-[8px] font-black tracking-[0.2em] ${sel.charm === c.id ? 'text-white' : ''}`}>{c.name}</span>
                       </button>
                     ))}
                   </div>
+                </motion.div>
+              )}
 
-                  {/* AI Scan */}
-                  <button onClick={() => setShowScanner(true)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-cyan-500/15 bg-cyan-500/4 hover:bg-cyan-500/8 transition-all group"
-                  >
-                    <div className="w-8 h-8 rounded-xl bg-cyan-500/12 border border-cyan-500/20 flex items-center justify-center shrink-0">
-                      <Camera size={15} className="text-cyan-500" />
-                    </div>
-                    <div className="text-left flex-1">
-                      <div className="text-[11px] font-black text-white tracking-wider">AI FOOT SCAN</div>
-                      <div className="text-[9px] font-mono text-neutral-600">Camera measurement · instant size</div>
-                    </div>
-                    <ArrowRight size={14} className="text-neutral-700 group-hover:text-cyan-500 group-hover:translate-x-0.5 transition-all" />
-                  </button>
-
-                  {/* Brand converter */}
-                  <div className="space-y-3 px-4 py-4 rounded-2xl border border-white/5 bg-white/2">
-                    <div className="text-[9px] font-mono text-neutral-600 tracking-[0.3em]">CONVERT FROM ANOTHER BRAND</div>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <select value={brandId} onChange={e => { setBrandId(e.target.value); setConvertResult(null); }}
-                          className="w-full appearance-none bg-neutral-900 border border-white/8 rounded-xl px-3 py-2 text-[11px] font-mono text-white focus:outline-none focus:border-white/20 pr-6"
-                        >
-                          {BRANDS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                        </select>
-                        <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-600 pointer-events-none" />
+              {/* DONE: Summary */}
+              {isDone && (
+                <motion.div key="done"
+                  initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="p-6 space-y-4"
+                >
+                  <div className="text-[9px] font-mono text-cyan-500 tracking-[0.4em]">YOUR CONFIGURATION</div>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'BASE',  value: currentBase?.name ?? '—',  dot: currentBase?.color },
+                      { label: 'STYLE', value: STRAP_TYPES.find(t=>t.id===sel.strapType)?.name ?? '—', dot: null },
+                      { label: 'STRAP', value: currentStrap?.name ?? '—', dot: currentStrap?.color },
+                      { label: 'CHARM', value: CHARMS.find(c=>c.id===sel.charm)?.name ?? '—', dot: null },
+                    ].map(row => (
+                      <div key={row.label} className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
+                        <span className="text-[9px] font-mono text-neutral-600 tracking-widest">{row.label}</span>
+                        <div className="flex items-center gap-2">
+                          {row.dot && <div className="w-3 h-3 rounded-full" style={{ backgroundColor: row.dot }} />}
+                          <span className="text-[11px] font-black text-white">{row.value}</span>
+                        </div>
                       </div>
-                      <input value={brandInput} onChange={e => { setBrandInput(e.target.value); setConvertResult(null); }}
-                        onKeyDown={e => e.key === 'Enter' && handleConvert()}
-                        placeholder="US 9"
-                        className="w-20 bg-neutral-900 border border-white/8 rounded-xl px-3 py-2 text-[11px] font-mono text-white placeholder-neutral-700 focus:outline-none focus:border-white/20"
-                      />
-                      <button onClick={handleConvert}
-                        className="px-3 py-2 bg-white text-black rounded-xl text-[10px] font-black hover:bg-cyan-400 transition-colors"
-                      >FIT</button>
-                    </div>
-                    <AnimatePresence>
-                      {convertResult !== null && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                          className={`text-[10px] font-mono px-3 py-2 rounded-xl ${convertResult ? 'text-cyan-400 bg-cyan-500/8 border border-cyan-500/15' : 'text-red-400 bg-red-500/8 border border-red-500/15'}`}
-                        >
-                          {convertResult
-                            ? `→ SIZE ${convertResult} (EU ${SIZES.find(s => s.id === convertResult)?.eu}) · applied`
-                            : 'Size not found — try adjacent size'}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    ))}
                   </div>
+                  <button onClick={() => { setSel({ base:'', strapType:'', strap:'', charm:'' }); setStep(0); }}
+                    className="w-full py-2.5 rounded-xl border border-white/8 text-neutral-600 text-[10px] font-black tracking-widest hover:border-white/15 hover:text-neutral-400 transition-all"
+                  >
+                    ← REDESIGN
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* CTA row */}
-          <div className="flex gap-3">
-            <button className="flex-1 flex items-center justify-center gap-2.5 py-4 rounded-2xl bg-white text-black text-[11px] font-black tracking-[0.18em] hover:bg-cyan-400 transition-colors group">
-              <ShoppingCart size={15} className="group-hover:scale-110 transition-transform" />
-              ADD TO CART · ${currentBase.price}
+          {/* Navigation buttons */}
+          {!isDone && (
+            <div className="flex gap-3">
+              {step > 0 && (
+                <button onClick={() => setStep(s => s - 1)}
+                  className="w-12 h-12 rounded-2xl bg-white/4 border border-white/8 flex items-center justify-center text-neutral-500 hover:text-white hover:border-white/15 transition-all"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+              )}
+              <motion.button
+                whileTap={hasChoice ? { scale: 0.97 } : {}}
+                onClick={() => hasChoice && setStep(s => Math.min(s + 1, 4))}
+                className={`flex-1 py-4 rounded-2xl font-black text-[11px] tracking-[0.2em] transition-all duration-200 flex items-center justify-center gap-2 ${
+                  hasChoice
+                    ? 'bg-white text-black hover:bg-cyan-400 cursor-pointer'
+                    : 'bg-white/5 text-neutral-700 cursor-not-allowed'
+                }`}
+              >
+                {step === 3 ? (
+                  <><ShoppingCart size={15} /> ADD TO CART · ${price}</>
+                ) : (
+                  `CONTINUE →`
+                )}
+              </motion.button>
+            </div>
+          )}
+
+          {isDone && (
+            <button className="w-full py-4 rounded-2xl bg-white text-black font-black text-[11px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-cyan-400 transition-colors">
+              <ShoppingCart size={15} /> ADD TO CART · ${price}
             </button>
-            <button onClick={() => setExpanded(!expanded)}
-              className="w-14 h-14 rounded-2xl bg-neutral-900 border border-white/8 flex items-center justify-center text-neutral-500 hover:text-white hover:border-white/20 transition-all"
-            >
-              <Maximize2 size={16} />
-            </button>
-          </div>
+          )}
         </div>
       </div>
-
-      {/* Scanner modal */}
-      <AnimatePresence>
-        {showScanner && (
-          <FootScanner
-            onResult={s => { set('size', s); setTab(3); }}
-            onClose={() => setShowScanner(false)}
-          />
-        )}
-      </AnimatePresence>
     </section>
   );
 }
