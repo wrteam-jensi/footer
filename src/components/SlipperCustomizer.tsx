@@ -393,6 +393,16 @@ export default function SlipperCustomizer() {
           </div>
         </div>
       </div>
+
+      {/* AI Foot Scanner Modal */}
+      <AnimatePresence>
+        {showScanner && (
+          <FootScanner
+            onResult={size => handleSelection('size', size)}
+            onClose={() => setShowScanner(false)}
+          />
+        )}
+      </AnimatePresence>
     </section>
   );
 }
