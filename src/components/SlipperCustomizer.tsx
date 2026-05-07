@@ -8,11 +8,13 @@ import * as THREE from 'three';
 import { Check, ChevronLeft, ShoppingCart, Maximize2, Minimize2 } from 'lucide-react';
 
 // ── Data ────────────────────────────────────────────────────────
+// soleH = rubber layer scale.y, midH = foam layer scale.y
+// strapY computed as soleH/2 + midH + 0.07 (top of footbed)
 const BASE_TYPES = [
-  { id: 'flat',     name: 'FLAT',     desc: 'Classic slim sole',      soleY: 0.13, midY: 0.31, midPos: 0.24 },
-  { id: 'platform', name: 'PLATFORM', desc: 'Chunky stacked sole',    soleY: 0.38, midY: 0.28, midPos: 0.56 },
-  { id: 'wedge',    name: 'WEDGE',    desc: 'Tapered heel lift',      soleY: 0.22, midY: 0.30, midPos: 0.38 },
-  { id: 'sport',    name: 'SPORT',    desc: 'Ergonomic contour',      soleY: 0.17, midY: 0.34, midPos: 0.30 },
+  { id: 'flat',     name: 'FLAT',     desc: 'Classic slim sole',   soleH: 0.12, midH: 0.14 },
+  { id: 'platform', name: 'PLATFORM', desc: 'Chunky stacked sole', soleH: 0.12, midH: 0.52 },
+  { id: 'wedge',    name: 'WEDGE',    desc: 'Tapered heel lift',   soleH: 0.12, midH: 0.24 },
+  { id: 'sport',    name: 'SPORT',    desc: 'Ergonomic contour',   soleH: 0.14, midH: 0.16 },
 ];
 
 const BASE_COLORS = [
@@ -25,10 +27,10 @@ const BASE_COLORS = [
 ];
 
 const STRAP_TYPES = [
-  { id: 'arch',  name: 'ARCH',  desc: 'Classic V-arch' },
-  { id: 'band',  name: 'BAND',  desc: 'Wide single wrap' },
-  { id: 'cross', name: 'CROSS', desc: 'X-cross open' },
-  { id: 'open',  name: 'OPEN',  desc: 'Mule, no strap' },
+  { id: 'double', name: 'DOUBLE BAND', desc: 'Two parallel straps' },
+  { id: 'wide',   name: 'WIDE SLIDE',  desc: 'Single wide band' },
+  { id: 'flip',   name: 'FLIP-FLOP',   desc: 'Y-thong toe strap' },
+  { id: 'open',   name: 'OPEN MULE',   desc: 'Backless, strapless' },
 ];
 
 const STRAP_COLORS = [
@@ -84,6 +86,9 @@ function LiveMat({ color, roughness = 0.35, metalness = 0.07, emissive = true }:
 }
 
 // ── 3D Slipper ──────────────────────────────────────────────────
+// Sole uses CylinderGeometry (axis=Y, circular in XZ) — gives a proper flat oval disc.
+// scale=[lengthHalf, thickness, widthHalf] → correct shoe sole shape.
+// Straps lie horizontal across the foot using capsuleGeometry rotation=[PI/2,0,0].
 function SlipperScene({
   showSole, showStrap, showCharm,
   baseType, baseColor, strapType, strapColor,
@@ -91,76 +96,112 @@ function SlipperScene({
   showSole: boolean; showStrap: boolean; showCharm: boolean;
   baseType: string; baseColor: string; strapType: string; strapColor: string;
 }) {
-  const bt = BASE_TYPES.find(b => b.id === baseType) ?? BASE_TYPES[0];
-  const bc = baseColor || '#888888';
-  const sc = STRAP_COLORS.find(s => s.id === strapColor)?.color ?? '#1e1e1e';
+  const bt  = BASE_TYPES.find(b => b.id === baseType) ?? BASE_TYPES[0];
+  const bc  = baseColor || '#888888';
+  const sc  = STRAP_COLORS.find(s => s.id === strapColor)?.color ?? '#1e1e1e';
+
+  // Y-levels
+  const soleTop  = bt.soleH / 2;
+  const midTop   = soleTop + bt.midH;
+  const strapY   = midTop + 0.08;           // just above footbed
+
+  const strapMat = <LiveMat color={sc} roughness={0.28} metalness={0.38} emissive={false} />;
 
   return (
-    <Float speed={1.2} rotationIntensity={0.14} floatIntensity={0.22}>
-      <group rotation={[0.3, -0.5, 0.05]}>
+    <Float speed={1.1} rotationIntensity={0.1} floatIntensity={0.18}>
+      {/* Y-rotate only — keeps slipper lying flat like the reference image */}
+      <group rotation={[0, -0.42, 0]}>
 
-        {/* ── SOLE (appears after base type + color selected) */}
+        {/* ── SOLE ─────────────────────────────────────────────── */}
         <AnimPart show={showSole}>
-          {/* Outer rubber sole */}
-          <mesh scale={[1.85, bt.soleY, 0.72]} castShadow receiveShadow>
-            <sphereGeometry args={[1, 48, 32]} />
-            <meshStandardMaterial color="#0a0a0a" roughness={0.92} />
+          {/* Rubber outer sole — flat oval disc */}
+          <mesh scale={[1.88, bt.soleH, 0.76]} castShadow receiveShadow position={[0, 0, 0]}>
+            <cylinderGeometry args={[1, 1, 1, 48]} />
+            <meshStandardMaterial color="#0d0d0d" roughness={0.9} metalness={0} />
           </mesh>
-          {/* EVA midsole — live color */}
-          <mesh scale={[1.68, bt.midY, 0.63]} position={[0, bt.midPos, 0]} castShadow>
-            <sphereGeometry args={[1, 48, 32]} />
-            <LiveMat color={bc} />
+
+          {/* EVA foam midsole — colored, sits on top of rubber */}
+          <mesh scale={[1.78, bt.midH, 0.70]} position={[0, soleTop + bt.midH / 2, 0]} castShadow>
+            <cylinderGeometry args={[1, 1, 1, 48]} />
+            <LiveMat color={bc} roughness={0.38} metalness={0.04} />
           </mesh>
-          {/* Footbed surface */}
-          <mesh scale={[1.55, 0.09, 0.57]} position={[0, bt.midPos + bt.midY + 0.05, 0]}>
-            <sphereGeometry args={[1, 48, 32]} />
+
+          {/* Footbed top surface — thin darker layer */}
+          <mesh scale={[1.70, 0.04, 0.65]} position={[0, midTop + 0.02, 0]}>
+            <cylinderGeometry args={[1, 1, 1, 48]} />
             <LiveMat color={bc} roughness={0.6} metalness={0} emissive={false} />
           </mesh>
-        </AnimPart>
 
-        {/* ── STRAP (appears after strap type + color selected) */}
-        <AnimPart show={showStrap}>
-          {strapType === 'arch' && (
-            <group>
-              <mesh position={[0.28, bt.midPos + bt.midY + 0.22, -0.53]} rotation={[0.7, 0, 0.08]} castShadow>
-                <capsuleGeometry args={[0.1, 0.78, 6, 20]} />
-                <LiveMat color={sc} roughness={0.2} metalness={0.5} emissive={false} />
-              </mesh>
-              <mesh position={[0.28, bt.midPos + bt.midY + 0.22, 0.53]} rotation={[-0.7, 0, 0.08]} castShadow>
-                <capsuleGeometry args={[0.1, 0.78, 6, 20]} />
-                <LiveMat color={sc} roughness={0.2} metalness={0.5} emissive={false} />
-              </mesh>
-              <mesh position={[0.28, bt.midPos + bt.midY + 0.56, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-                <capsuleGeometry args={[0.1, 0.95, 6, 20]} />
-                <LiveMat color={sc} roughness={0.2} metalness={0.5} emissive={false} />
-              </mesh>
-            </group>
-          )}
-          {strapType === 'band' && (
-            <mesh position={[0.25, bt.midPos + bt.midY + 0.22, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-              <capsuleGeometry args={[0.24, 1.1, 10, 28]} />
-              <LiveMat color={sc} roughness={0.2} metalness={0.5} emissive={false} />
+          {/* Platform wedge block (only for wedge/platform types) */}
+          {(bt.id === 'wedge') && (
+            <mesh position={[-0.65, soleTop + bt.midH * 0.3, 0]} scale={[0.55, bt.midH * 0.65, 0.68]} castShadow>
+              <cylinderGeometry args={[1, 0.85, 1, 32]} />
+              <LiveMat color={bc} roughness={0.45} metalness={0.04} />
             </mesh>
           )}
-          {strapType === 'cross' && (
+        </AnimPart>
+
+        {/* ── STRAP ────────────────────────────────────────────── */}
+        <AnimPart show={showStrap}>
+
+          {/* DOUBLE BAND — two parallel horizontal tubes, like green slides */}
+          {strapType === 'double' && (
             <group>
-              <mesh position={[0.2, bt.midPos + bt.midY + 0.18, 0]} rotation={[0, 0.58, 0.08]} castShadow>
-                <capsuleGeometry args={[0.1, 1.45, 6, 20]} />
-                <LiveMat color={sc} roughness={0.2} metalness={0.5} emissive={false} />
+              <mesh position={[0.52, strapY, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+                <capsuleGeometry args={[0.13, 1.25, 8, 20]} />
+                {strapMat}
               </mesh>
-              <mesh position={[0.2, bt.midPos + bt.midY + 0.18, 0]} rotation={[0, -0.58, 0.08]} castShadow>
-                <capsuleGeometry args={[0.1, 1.45, 6, 20]} />
-                <LiveMat color={sc} roughness={0.2} metalness={0.5} emissive={false} />
+              <mesh position={[-0.22, strapY, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+                <capsuleGeometry args={[0.13, 1.25, 8, 20]} />
+                {strapMat}
               </mesh>
             </group>
           )}
+
+          {/* WIDE SLIDE — single wide band, like white mule */}
+          {strapType === 'wide' && (
+            <mesh position={[0.18, strapY, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+              <capsuleGeometry args={[0.22, 1.28, 10, 24]} />
+              {strapMat}
+            </mesh>
+          )}
+
+          {/* FLIP-FLOP — Y-thong strap.
+              After rotation=[PI/2, y, 0]: tube points in direction (sin(y), 0, cos(y)).
+              Left arm from toe (0.88,y,0) → heel-left (-0.35,y,-0.62): dir(-0.894,0,-0.447).
+                sin(y)=-0.894, cos(y)=-0.447 → y ≈ -2.03 rad
+              Right arm mirror: dir(-0.894,0,+0.447).
+                sin(y)=-0.894, cos(y)=+0.447 → y ≈ -1.11 rad                        */}
+          {strapType === 'flip' && (
+            <group>
+              {/* Toe post */}
+              <mesh position={[0.88, strapY + 0.06, 0]} castShadow>
+                <capsuleGeometry args={[0.07, 0.22, 4, 12]} />
+                {strapMat}
+              </mesh>
+              {/* Left arm */}
+              <mesh position={[0.27, strapY, -0.31]} rotation={[Math.PI / 2, -2.03, 0]} castShadow>
+                <capsuleGeometry args={[0.07, 1.36, 4, 14]} />
+                {strapMat}
+              </mesh>
+              {/* Right arm */}
+              <mesh position={[0.27, strapY, 0.31]} rotation={[Math.PI / 2, -1.11, 0]} castShadow>
+                <capsuleGeometry args={[0.07, 1.36, 4, 14]} />
+                {strapMat}
+              </mesh>
+            </group>
+          )}
+
+          {/* OPEN MULE — no strap geometry */}
+
         </AnimPart>
 
-        {/* ── CHARM (appears after charm selected) */}
+        {/* ── CHARM ────────────────────────────────────────────── */}
         <AnimPart show={showCharm}>
-          <mesh position={[0.28, bt.midPos + bt.midY + 0.58, 0]}>
-            <sphereGeometry args={[0.16, 24, 24]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.05} metalness={0.95} emissive="#ffffff" emissiveIntensity={0.25} />
+          <mesh position={[0.52, strapY + 0.2, 0]} castShadow>
+            <sphereGeometry args={[0.14, 24, 24]} />
+            <meshStandardMaterial color="#ffffff" roughness={0.05} metalness={0.95}
+              emissive="#ffffff" emissiveIntensity={0.3} />
           </mesh>
         </AnimPart>
 
@@ -238,11 +279,11 @@ export default function SlipperCustomizer() {
             {expanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
           </button>
 
-          <Canvas shadows camera={{ position: [1.5, 2.5, 8], fov: 36 }}>
+          <Canvas shadows camera={{ position: [0, 6, 5.5], fov: 33 }}>
             <color attach="background" args={['#0a0a0a']} />
-            <ambientLight intensity={0.35} />
-            <directionalLight position={[4, 7, 6]} intensity={1.4} castShadow />
-            <directionalLight position={[-5, 2, -3]} intensity={0.3} color="#00e5ff" />
+            <ambientLight intensity={0.6} />
+            <directionalLight position={[3, 9, 4]} intensity={1.6} castShadow shadow-mapSize={1024} />
+            <directionalLight position={[-4, 4, -2]} intensity={0.22} color="#ccddff" />
             <Suspense fallback={null}>
               <SlipperScene
                 showSole={showSole}
@@ -250,7 +291,7 @@ export default function SlipperCustomizer() {
                 showCharm={showCharm}
                 baseType={sel.baseType || 'flat'}
                 baseColor={sel.baseColor || '#888888'}
-                strapType={sel.strapType || 'arch'}
+                strapType={sel.strapType || 'double'}
                 strapColor={sel.strapColor || 'carbon'}
               />
               <ContactShadows position={[0, -1.5, 0]} opacity={showSole ? 0.3 : 0} scale={8} blur={2.5} />
@@ -390,26 +431,37 @@ export default function SlipperCustomizer() {
                   <Card key={t.id} selected={sel.strapType === t.id} onClick={() => set('strapType', t.id)}>
                     <div className="p-4 space-y-3">
                       <div className="w-full h-14 flex items-center justify-center">
-                        <svg width="80" height="40" viewBox="0 0 80 40">
-                          {t.id === 'arch' && (
-                            <path d="M4 36 L24 8 L40 4 L56 8 L76 36"
-                              stroke={sel.strapType === t.id ? '#00e5ff' : '#3a3a3a'}
-                              strokeWidth="4" fill="none" strokeLinecap="round" />
+                        {/* SVG icon showing strap shape from above (top-view) */}
+                        <svg width="80" height="44" viewBox="0 0 80 44">
+                          {/* Sole outline for context */}
+                          <ellipse cx="40" cy="30" rx="35" ry="12"
+                            fill="none" stroke="#222" strokeWidth="1.5" />
+                          {t.id === 'double' && (
+                            <>
+                              <line x1="5" y1="24" x2="75" y2="24"
+                                stroke={sel.strapType === t.id ? '#00e5ff' : '#3a3a3a'} strokeWidth="5" strokeLinecap="round" />
+                              <line x1="5" y1="35" x2="75" y2="35"
+                                stroke={sel.strapType === t.id ? '#00e5ff' : '#3a3a3a'} strokeWidth="5" strokeLinecap="round" />
+                            </>
                           )}
-                          {t.id === 'band' && (
-                            <rect x="4" y="14" width="72" height="14" rx="7"
+                          {t.id === 'wide' && (
+                            <rect x="14" y="22" width="52" height="14" rx="7"
                               fill={sel.strapType === t.id ? '#00e5ff' : '#3a3a3a'} />
                           )}
-                          {t.id === 'cross' && (
+                          {t.id === 'flip' && (
                             <>
-                              <line x1="8" y1="36" x2="72" y2="4" stroke={sel.strapType === t.id ? '#00e5ff' : '#3a3a3a'} strokeWidth="4" strokeLinecap="round" />
-                              <line x1="8" y1="4" x2="72" y2="36" stroke={sel.strapType === t.id ? '#00e5ff' : '#3a3a3a'} strokeWidth="4" strokeLinecap="round" />
+                              <line x1="62" y1="30" x2="18" y2="20"
+                                stroke={sel.strapType === t.id ? '#00e5ff' : '#3a3a3a'} strokeWidth="4" strokeLinecap="round" />
+                              <line x1="62" y1="30" x2="18" y2="40"
+                                stroke={sel.strapType === t.id ? '#00e5ff' : '#3a3a3a'} strokeWidth="4" strokeLinecap="round" />
+                              <circle cx="62" cy="30" r="3.5"
+                                fill={sel.strapType === t.id ? '#00e5ff' : '#3a3a3a'} />
                             </>
                           )}
                           {t.id === 'open' && (
-                            <ellipse cx="40" cy="24" rx="36" ry="12"
-                              stroke={sel.strapType === t.id ? '#00e5ff' : '#3a3a3a'}
-                              strokeWidth="3" fill="none" strokeDasharray="6 3" />
+                            <text x="40" y="34" textAnchor="middle" fontSize="9"
+                              fill={sel.strapType === t.id ? '#00e5ff66' : '#33333388'}
+                              fontFamily="monospace">NO STRAP</text>
                           )}
                         </svg>
                       </div>
