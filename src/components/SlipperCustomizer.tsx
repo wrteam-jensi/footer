@@ -48,65 +48,75 @@ const TABS = ['COLOR', 'STRAP', 'BADGE', 'SIZE'];
 
 // ── 3D Model ────────────────────────────────────────────────────
 function SlipperMesh({ base, belt, badge, size }: { base: string; belt: string; badge: string; size: string }) {
-  const baseObj  = BASES.find(b => b.id === base)  ?? BASES[0];
-  const beltObj  = BELTS.find(b => b.id === belt)  ?? BELTS[0];
-  const sizeObj  = SIZES.find(s => s.id === size)  ?? SIZES[1];
+  const baseObj = BASES.find(b => b.id === base)  ?? BASES[0];
+  const beltObj = BELTS.find(b => b.id === belt)  ?? BELTS[0];
+  const sizeObj = SIZES.find(s => s.id === size)  ?? SIZES[1];
 
   const baseColor = baseObj.color;
-  const soleColor = '#111111';
   const beltColor = beltObj.color;
 
+  // Scaled-sphere gives a genuine flat oval silhouette — capsule always reads as a pill.
+  // Slipper local space: length along X, thin in Y, width along Z.
+  // Group rotation tilts it into a 3/4 perspective view.
   return (
-    <Float speed={1.6} rotationIntensity={0.25} floatIntensity={0.35}>
-      <group rotation={[0.28, -0.45, 0]} scale={sizeObj.scale}>
+    <Float speed={1.4} rotationIntensity={0.18} floatIntensity={0.28}>
+      <group rotation={[0.32, -0.52, 0.06]} scale={sizeObj.scale}>
 
-        {/* ── Outer sole (rubber bottom) */}
-        <mesh rotation={[0, 0, Math.PI / 2]} castShadow receiveShadow position={[0, -0.05, 0]}>
-          <capsuleGeometry args={[0.58, 2.9, 8, 32]} />
-          <meshStandardMaterial color={soleColor} roughness={0.85} metalness={0.0} />
+        {/* Rubber outer sole — very flat dark ellipsoid */}
+        <mesh scale={[1.85, 0.13, 0.7]} castShadow receiveShadow>
+          <sphereGeometry args={[1, 48, 32]} />
+          <meshStandardMaterial color="#0c0c0c" roughness={0.9} metalness={0} />
         </mesh>
 
-        {/* ── Midsole (foam layer) */}
-        <mesh rotation={[0, 0, Math.PI / 2]} castShadow position={[0, 0.36, 0]}>
-          <capsuleGeometry args={[0.44, 2.65, 8, 32]} />
+        {/* EVA midsole — colored, slightly domed */}
+        <mesh scale={[1.68, 0.29, 0.62]} position={[0, 0.23, 0]} castShadow>
+          <sphereGeometry args={[1, 48, 32]} />
           <meshStandardMaterial
             color={baseColor}
-            roughness={0.35}
-            metalness={0.08}
+            roughness={0.34}
+            metalness={0.07}
             emissive={baseColor}
-            emissiveIntensity={0.06}
+            emissiveIntensity={0.08}
           />
         </mesh>
 
-        {/* ── Footbed top (slightly lighter) */}
-        <mesh rotation={[0, 0, Math.PI / 2]} position={[0, 0.66, 0]}>
-          <capsuleGeometry args={[0.24, 2.5, 8, 32]} />
-          <meshStandardMaterial color={baseColor} roughness={0.5} metalness={0.0} emissive={baseColor} emissiveIntensity={0.03} />
+        {/* Footbed surface — thin top layer, slightly darker */}
+        <mesh scale={[1.55, 0.1, 0.56]} position={[0, 0.51, 0]}>
+          <sphereGeometry args={[1, 48, 32]} />
+          <meshStandardMaterial color={baseColor} roughness={0.55} metalness={0} />
         </mesh>
 
-        {/* ── Left strap arm */}
-        <mesh position={[0.42, 0.98, 0.18]} rotation={[-0.18, 0.08, -0.62]} castShadow>
-          <capsuleGeometry args={[0.115, 0.88, 4, 16]} />
-          <meshStandardMaterial color={beltColor} roughness={0.22} metalness={0.45} />
+        {/*
+          Strap: two angled arms + horizontal bridge.
+          Arms start at foot-width edges (Z ≈ ±0.52) and lean inward to meet the bridge.
+          CapsuleGeometry default axis = Y. X-rotation tilts the Y-axis toward ±Z.
+          Left arm at -Z needs top to tilt toward +Z → positive X rotation.
+          Right arm at +Z needs top to tilt toward -Z → negative X rotation.
+        */}
+
+        {/* Strap left arm */}
+        <mesh position={[0.28, 0.66, -0.52]} rotation={[0.72, 0, 0.1]} castShadow>
+          <capsuleGeometry args={[0.1, 0.78, 6, 18]} />
+          <meshStandardMaterial color={beltColor} roughness={0.2} metalness={0.5} />
         </mesh>
 
-        {/* ── Right strap arm */}
-        <mesh position={[-0.42, 0.98, 0.18]} rotation={[-0.18, -0.08, 0.62]} castShadow>
-          <capsuleGeometry args={[0.115, 0.88, 4, 16]} />
-          <meshStandardMaterial color={beltColor} roughness={0.22} metalness={0.45} />
+        {/* Strap right arm */}
+        <mesh position={[0.28, 0.66, 0.52]} rotation={[-0.72, 0, 0.1]} castShadow>
+          <capsuleGeometry args={[0.1, 0.78, 6, 18]} />
+          <meshStandardMaterial color={beltColor} roughness={0.2} metalness={0.5} />
         </mesh>
 
-        {/* ── Strap bridge (top connector) */}
-        <mesh position={[0, 1.22, 0.28]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <capsuleGeometry args={[0.115, 0.52, 4, 16]} />
-          <meshStandardMaterial color={beltColor} roughness={0.22} metalness={0.45} />
+        {/* Strap bridge — horizontal capsule spanning Z-width */}
+        <mesh position={[0.28, 1.02, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <capsuleGeometry args={[0.1, 0.9, 6, 18]} />
+          <meshStandardMaterial color={beltColor} roughness={0.2} metalness={0.5} />
         </mesh>
 
-        {/* ── Badge dot */}
+        {/* Badge — small embossed sphere on strap */}
         {badge !== 'none' && (
-          <mesh position={[0.6, 0.78, 0.46]}>
-            <sphereGeometry args={[0.1, 16, 16]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.1} metalness={0.8} emissive="#ffffff" emissiveIntensity={0.3} />
+          <mesh position={[0.28, 1.02, 0]}>
+            <sphereGeometry args={[0.14, 20, 20]} />
+            <meshStandardMaterial color="#fff" roughness={0.08} metalness={0.9} emissive="#fff" emissiveIntensity={0.2} />
           </mesh>
         )}
       </group>
@@ -167,10 +177,11 @@ export default function SlipperCustomizer() {
           </div>
 
           {/* Canvas */}
-          <Canvas shadows camera={{ position: [0, 1, 8.5], fov: 38 }}>
-            <ambientLight intensity={0.4} />
-            <directionalLight position={[5, 8, 5]} intensity={1.2} castShadow />
-            <directionalLight position={[-4, 3, -4]} intensity={0.4} color="#00e5ff" />
+          <Canvas shadows camera={{ position: [1.5, 2.5, 8], fov: 36 }}>
+            <ambientLight intensity={0.45} />
+            <directionalLight position={[4, 7, 6]} intensity={1.4} castShadow shadow-mapSize={1024} />
+            <directionalLight position={[-5, 2, -3]} intensity={0.35} color="#00e5ff" />
+            <pointLight position={[0, 4, 2]} intensity={0.3} color="#ffffff" />
             <Suspense fallback={null}>
               <SlipperMesh base={sel.base} belt={sel.belt} badge={sel.badge} size={sel.size} />
               <ContactShadows position={[0, -2.4, 0]} opacity={0.4} scale={8} blur={2} />
