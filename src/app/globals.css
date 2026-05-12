@@ -6,33 +6,29 @@
 }
 
 :root {
-  --background: #050505;
-  --foreground: #ffffff;
-  --accent: #ff3e00;
-  --accent-secondary: #00e5ff;
+  --background: #fdf8f4;
+  --foreground: #18181b;
+  --accent: #7c3aed;
+  --accent-secondary: #d97706;
 }
 
 @layer base {
   body {
-    @apply bg-[var(--background)] text-[var(--foreground)] selection:bg-[var(--accent)] selection:text-white;
+    @apply bg-[var(--background)] text-[var(--foreground)] selection:bg-violet-200 selection:text-violet-900;
     overflow-x: hidden;
   }
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.5) 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #d97706 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-}
-
-.accent-gradient {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
 }
 
 canvas {

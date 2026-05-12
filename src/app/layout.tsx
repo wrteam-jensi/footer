@@ -13,12 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BEYOND | Immersive 3D Digital Experience",
-  description: "Next-generation web experiences powered by Three.js and Antigravity.",
+  title: "VELURA | Custom Slippers Designed by You",
+  description: "Design your perfect pair of custom slippers. Choose materials, colours, embellishments — and scan your foot for a perfect fit.",
 };
 
 import SmoothScroll from "@/components/SmoothScroll";
-import Navbar from "@/components/Navbar";
 import CustomCursor from "@/components/CustomCursor";
 
 export default function RootLayout({
@@ -31,9 +30,8 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-black text-white selection:bg-cyan-500/30">
+      <body className="min-h-full flex flex-col bg-[#fdf8f4] text-zinc-900 selection:bg-violet-200 selection:text-violet-900">
         <CustomCursor />
-        <Navbar />
         <SmoothScroll>{children}</SmoothScroll>
       </body>
     </html>

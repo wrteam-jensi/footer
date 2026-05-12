@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useRef, useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { Camera, X, Scan, CheckCircle, AlertCircle, RefreshCw, Ruler } from 'lucide-react';
 
 type ScanResult = {
@@ -34,7 +34,6 @@ function analyzeFrame(canvas: HTMLCanvasElement): ScanResult {
   const imageData = ctx.getImageData(0, 0, width, height);
   const data = imageData.data;
 
-  // Find dark pixel bounds (foot tends to be darker than floor)
   let minX = width, maxX = 0, minY = height, maxY = 0;
   let darkPixelCount = 0;
 
@@ -43,7 +42,6 @@ function analyzeFrame(canvas: HTMLCanvasElement): ScanResult {
       const idx = (y * width + x) * 4;
       const r = data[idx], g = data[idx + 1], b = data[idx + 2];
       const brightness = (r + g + b) / 3;
-      // Detect relatively darker pixels vs surroundings
       if (brightness < 100) {
         darkPixelCount++;
         if (x < minX) minX = x;
@@ -54,22 +52,16 @@ function analyzeFrame(canvas: HTMLCanvasElement): ScanResult {
     }
   }
 
-  // If no significant dark region, estimate based on standard
   const hasGoodDetection = darkPixelCount > 500 && (maxX - minX) > width * 0.1;
-
-  // Credit card reference: 85.6mm wide. Assume card occupies ~20% of frame width on mobile.
-  // This gives scale: frame_width * 0.20 = 85.6mm => 1px ≈ 85.6 / (width*0.20) mm
   const mmPerPx = 85.6 / (width * 0.20);
 
-  let detectedLengthPx = hasGoodDetection ? (maxY - minY) : height * 0.42;
-  let detectedWidthPx = hasGoodDetection ? (maxX - minX) : width * 0.22;
+  const detectedLengthPx = hasGoodDetection ? (maxY - minY) : height * 0.42;
+  const detectedWidthPx = hasGoodDetection ? (maxX - minX) : width * 0.22;
 
-  // Add small random variance for realistic feel
   const variance = () => (Math.random() - 0.5) * 0.8;
   const lengthCm = Math.round(((detectedLengthPx * mmPerPx) / 10 + variance()) * 10) / 10;
   const widthCm = Math.round(((detectedWidthPx * mmPerPx) / 10 + variance()) * 10) / 10;
 
-  // Clamp to realistic range
   const clampedLength = Math.min(Math.max(lengthCm, 22), 31);
   const clampedWidth = Math.min(Math.max(widthCm, 8), 12);
 
@@ -91,7 +83,6 @@ export default function FootScanner({ onResult, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const scanLineRef = useRef<number>(0);
   const animFrameRef = useRef<number>(0);
 
   const [state, setState] = useState<ScannerState>('idle');
@@ -134,19 +125,16 @@ export default function FootScanner({ onResult, onClose }: Props) {
       const elapsed = now - start;
       const pct = Math.min(elapsed / duration, 1);
       setProgress(Math.round(pct * 100));
-      scanLineRef.current = pct;
       setScanLineY(pct);
 
       if (pct < 1) {
         animFrameRef.current = requestAnimationFrame(animateScan);
       } else {
-        // Capture frame
         const video = videoRef.current!;
         const canvas = canvasRef.current!;
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 360;
         canvas.getContext('2d')!.drawImage(video, 0, 0);
-
         setState('analyzing');
         setTimeout(() => {
           const scanResult = analyzeFrame(canvas);
@@ -162,17 +150,9 @@ export default function FootScanner({ onResult, onClose }: Props) {
     return () => stopCamera();
   }, [stopCamera]);
 
-  const handleClose = () => {
-    stopCamera();
-    onClose();
-  };
-
+  const handleClose = () => { stopCamera(); onClose(); };
   const handleApply = () => {
-    if (result) {
-      onResult(result.recommendedSize);
-      stopCamera();
-      onClose();
-    }
+    if (result) { onResult(result.recommendedSize); stopCamera(); onClose(); }
   };
 
   return (
@@ -180,32 +160,38 @@ export default function FootScanner({ onResult, onClose }: Props) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
+      className="fixed inset-0 z-200 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={e => e.target === e.currentTarget && handleClose()}
     >
       <motion.div
-        initial={{ scale: 0.92, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.92, opacity: 0 }}
-        className="w-full max-w-md bg-[#070707] border border-white/10 rounded-[2.5rem] overflow-hidden"
+        initial={{ scale: 0.93, opacity: 0, y: 16 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.93, opacity: 0, y: 16 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+        className="w-full max-w-md bg-white border border-stone-100 rounded-4xl overflow-hidden shadow-2xl shadow-stone-200"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-8 pt-8 pb-6">
-          <div>
-            <div className="text-[10px] font-mono text-cyan-500 tracking-[0.3em] mb-1">AI_SCAN_MODULE</div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tight">Foot Measurement</h3>
+        <div className="flex items-center justify-between px-7 pt-7 pb-5 border-b border-stone-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+              <Scan size={18} className="text-violet-600" />
+            </div>
+            <div>
+              <div className="text-[9px] font-mono text-violet-500 tracking-[0.3em] mb-0.5">AI SCAN MODULE</div>
+              <h3 className="text-base font-black text-zinc-900 tracking-tight">Foot Measurement</h3>
+            </div>
           </div>
           <button
             onClick={handleClose}
-            className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 transition-all"
+            className="w-9 h-9 rounded-xl bg-stone-100 flex items-center justify-center text-stone-500 hover:bg-stone-200 hover:text-zinc-900 transition-all"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
 
-        <div className="px-8 pb-8 space-y-6">
+        <div className="px-7 pb-7 pt-5 space-y-5">
           {/* Camera viewport */}
-          <div className="relative w-full aspect-[4/3] rounded-2xl bg-neutral-900 overflow-hidden border border-white/5">
+          <div className="relative w-full aspect-4/3 rounded-2xl bg-stone-50 overflow-hidden border border-stone-100">
             <video
               ref={videoRef}
               className="w-full h-full object-cover"
@@ -215,31 +201,30 @@ export default function FootScanner({ onResult, onClose }: Props) {
             />
             <canvas ref={canvasRef} className="hidden" />
 
-            {/* Overlay: idle/error */}
             {(state === 'idle' || state === 'permission') && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
-                  <Camera size={32} className="text-cyan-500" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <div className="w-20 h-20 rounded-full bg-violet-50 border-2 border-violet-100 flex items-center justify-center">
+                  <Camera size={30} className="text-violet-400" />
                 </div>
-                <p className="text-neutral-400 text-sm font-mono text-center px-6">
-                  {state === 'permission' ? 'Requesting camera access...' : 'Camera will open here'}
+                <p className="text-stone-400 text-sm font-medium text-center px-6">
+                  {state === 'permission' ? 'Requesting camera access…' : 'Camera preview will appear here'}
                 </p>
               </div>
             )}
 
             {state === 'error' && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                <AlertCircle size={32} className="text-red-400" />
-                <p className="text-red-400 text-sm font-mono text-center px-6">Camera access denied.<br />Check browser permissions.</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <AlertCircle size={28} className="text-rose-400" />
+                <p className="text-rose-500 text-sm font-semibold text-center px-6">
+                  Camera access denied.<br />Check browser permissions.
+                </p>
               </div>
             )}
 
-            {/* Scanning overlay */}
             {(state === 'ready' || state === 'scanning') && (
               <div className="absolute inset-0 pointer-events-none">
-                {/* Corner guides */}
                 {['top-3 left-3', 'top-3 right-3', 'bottom-3 left-3', 'bottom-3 right-3'].map((pos, i) => (
-                  <div key={i} className={`absolute ${pos} w-6 h-6 border-cyan-500`}
+                  <div key={i} className={`absolute ${pos} w-6 h-6 border-violet-500`}
                     style={{
                       borderTopWidth: i < 2 ? 2 : 0,
                       borderBottomWidth: i >= 2 ? 2 : 0,
@@ -248,97 +233,84 @@ export default function FootScanner({ onResult, onClose }: Props) {
                     }}
                   />
                 ))}
-
-                {/* Foot outline guide */}
-                <div className="absolute inset-[15%] border border-dashed border-cyan-500/30 rounded-[40%]" />
-
-                {/* Scan line */}
+                <div className="absolute inset-[15%] border border-dashed border-violet-300/60 rounded-[40%]" />
                 {state === 'scanning' && (
                   <div
-                    className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_10px_rgba(6,182,212,0.8)]"
+                    className="absolute left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-violet-500 to-transparent shadow-[0_0_10px_rgba(124,58,237,0.7)]"
                     style={{ top: `${scanLineY * 100}%` }}
                   />
                 )}
-
-                {/* Guide label */}
                 {state === 'ready' && (
                   <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-                    <div className="px-3 py-1.5 bg-black/60 rounded-full text-[10px] font-mono text-cyan-400 border border-cyan-500/20">
+                    <div className="px-3 py-1.5 bg-white/90 rounded-full text-[10px] font-mono text-violet-500 border border-violet-100 shadow-sm">
                       Place foot flat · reference card beside it
                     </div>
                   </div>
                 )}
-
                 {state === 'scanning' && (
                   <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-                    <div className="px-3 py-1.5 bg-black/60 rounded-full text-[10px] font-mono text-cyan-400 border border-cyan-500/20">
-                      Scanning... {progress}%
+                    <div className="px-3 py-1.5 bg-white/90 rounded-full text-[10px] font-mono text-violet-500 border border-violet-100 shadow-sm">
+                      Scanning… {progress}%
                     </div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Analyzing overlay */}
             {state === 'analyzing' && (
-              <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-4">
-                <div className="relative w-16 h-16">
-                  <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20 animate-ping" />
-                  <div className="absolute inset-2 rounded-full border border-cyan-500 border-t-transparent animate-spin" />
-                  <Scan size={20} className="absolute inset-0 m-auto text-cyan-500" />
+              <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center gap-4">
+                <div className="relative w-14 h-14">
+                  <div className="absolute inset-0 rounded-full border-2 border-violet-200 animate-ping" />
+                  <div className="absolute inset-2 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+                  <Scan size={18} className="absolute inset-0 m-auto text-violet-500" />
                 </div>
                 <div className="text-center">
-                  <p className="text-white text-sm font-black tracking-widest">PROCESSING</p>
-                  <p className="text-neutral-500 text-[10px] font-mono mt-1">Edge detection · dimension mapping</p>
+                  <p className="text-zinc-900 text-sm font-black tracking-widest">PROCESSING</p>
+                  <p className="text-stone-400 text-[10px] font-mono mt-1">Edge detection · dimension mapping</p>
                 </div>
               </div>
             )}
 
-            {/* Result overlay */}
             {state === 'result' && result && (
-              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-3 p-6">
-                <CheckCircle size={28} className="text-cyan-500" />
-                <div className="text-center space-y-1">
-                  <div className="text-[10px] font-mono text-neutral-500 tracking-widest">SCAN COMPLETE · {result.confidence}% CONFIDENCE</div>
-                  <div className="flex gap-6 justify-center pt-2">
-                    <div className="text-center">
-                      <div className="text-2xl font-black text-white">{result.lengthCm}<span className="text-sm text-neutral-400">cm</span></div>
-                      <div className="text-[9px] font-mono text-neutral-600">LENGTH</div>
+              <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center gap-3 p-6">
+                <CheckCircle size={26} className="text-violet-500" />
+                <div className="text-[10px] font-mono text-stone-400 tracking-widest text-center">
+                  SCAN COMPLETE · {result.confidence}% CONFIDENCE
+                </div>
+                <div className="flex gap-6 justify-center pt-1">
+                  {[
+                    { val: `${result.lengthCm}cm`, label: 'LENGTH' },
+                    { val: `${result.widthCm}cm`, label: 'WIDTH' },
+                    { val: `EU ${result.euSize}`, label: 'EU SIZE', highlight: true },
+                  ].map((item, i) => (
+                    <div key={i} className="text-center">
+                      <div className={`text-2xl font-black ${item.highlight ? 'text-violet-600' : 'text-zinc-900'}`}>
+                        {item.val}
+                      </div>
+                      <div className="text-[9px] font-mono text-stone-400">{item.label}</div>
                     </div>
-                    <div className="w-px bg-white/10" />
-                    <div className="text-center">
-                      <div className="text-2xl font-black text-white">{result.widthCm}<span className="text-sm text-neutral-400">cm</span></div>
-                      <div className="text-[9px] font-mono text-neutral-600">WIDTH</div>
-                    </div>
-                    <div className="w-px bg-white/10" />
-                    <div className="text-center">
-                      <div className="text-2xl font-black text-cyan-500">EU {result.euSize}</div>
-                      <div className="text-[9px] font-mono text-neutral-600">EU SIZE</div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Reference card hint */}
           {(state === 'idle' || state === 'ready') && (
-            <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/3 border border-white/5">
-              <Ruler size={14} className="text-cyan-500 mt-0.5 shrink-0" />
-              <p className="text-[11px] font-mono text-neutral-500 leading-relaxed">
-                Place a standard card (credit/debit) next to your foot as scale reference. Stand on a flat surface for best results.
+            <div className="flex items-start gap-3 p-4 rounded-2xl bg-violet-50 border border-violet-100">
+              <Ruler size={14} className="text-violet-500 mt-0.5 shrink-0" />
+              <p className="text-[11px] font-medium text-stone-500 leading-relaxed">
+                Place a standard credit/debit card next to your foot as a scale reference. Stand on a flat, well-lit surface.
               </p>
             </div>
           )}
 
-          {/* Action buttons */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {state === 'idle' && (
               <button
                 onClick={startCamera}
-                className="w-full py-4 bg-cyan-500 text-black font-black text-xs tracking-[0.2em] rounded-2xl hover:bg-cyan-400 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-zinc-900 text-white font-black text-xs tracking-[0.2em] rounded-2xl hover:bg-violet-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-stone-200"
               >
-                <Camera size={16} />
+                <Camera size={15} />
                 OPEN CAMERA
               </button>
             )}
@@ -346,30 +318,35 @@ export default function FootScanner({ onResult, onClose }: Props) {
             {state === 'ready' && (
               <button
                 onClick={runScan}
-                className="w-full py-4 bg-white text-black font-black text-xs tracking-[0.2em] rounded-2xl hover:bg-cyan-500 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-violet-600 text-white font-black text-xs tracking-[0.2em] rounded-2xl hover:bg-violet-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-200"
               >
-                <Scan size={16} />
+                <Scan size={15} />
                 SCAN FOOT NOW
               </button>
             )}
 
             {state === 'result' && result && (
               <>
-                <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-center">
-                  <div className="text-[10px] font-mono text-neutral-500 mb-1">RECOMMENDED SIZE</div>
-                  <div className="text-3xl font-black text-white">{result.recommendedSize} <span className="text-neutral-400 text-lg font-light">— {result.recommendedSize === 'S' ? 'SMALL' : result.recommendedSize === 'M' ? 'MEDIUM' : 'LARGE'}</span></div>
+                <div className="p-4 rounded-2xl bg-violet-50 border border-violet-100 text-center">
+                  <div className="text-[10px] font-mono text-stone-400 mb-1">RECOMMENDED SIZE</div>
+                  <div className="text-3xl font-black text-zinc-900">
+                    {result.recommendedSize}{' '}
+                    <span className="text-stone-400 text-lg font-normal">
+                      — {result.recommendedSize === 'S' ? 'SMALL' : result.recommendedSize === 'M' ? 'MEDIUM' : 'LARGE'}
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={handleApply}
-                  className="w-full py-4 bg-white text-black font-black text-xs tracking-[0.2em] rounded-2xl hover:bg-cyan-500 transition-all"
+                  className="w-full py-4 bg-zinc-900 text-white font-black text-xs tracking-[0.2em] rounded-2xl hover:bg-violet-600 transition-all shadow-lg shadow-stone-200"
                 >
                   APPLY THIS SIZE
                 </button>
                 <button
                   onClick={() => { setState('ready'); setResult(null); setProgress(0); }}
-                  className="w-full py-3 bg-white/5 border border-white/10 text-neutral-400 font-black text-xs tracking-widest rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-stone-100 text-stone-500 font-black text-xs tracking-widest rounded-2xl hover:bg-stone-200 transition-all flex items-center justify-center gap-2"
                 >
-                  <RefreshCw size={14} />
+                  <RefreshCw size={13} />
                   RESCAN
                 </button>
               </>
@@ -378,16 +355,16 @@ export default function FootScanner({ onResult, onClose }: Props) {
             {state === 'error' && (
               <button
                 onClick={() => setState('idle')}
-                className="w-full py-4 bg-white/5 border border-white/10 text-neutral-400 font-black text-xs tracking-widest rounded-2xl hover:bg-white/10 transition-all"
+                className="w-full py-4 bg-stone-100 text-stone-600 font-black text-xs tracking-widest rounded-2xl hover:bg-stone-200 transition-all"
               >
                 TRY AGAIN
               </button>
             )}
 
             {(state === 'scanning' || state === 'analyzing' || state === 'permission') && (
-              <div className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center">
-                <div className="w-4 h-4 border border-cyan-500 border-t-transparent rounded-full animate-spin mr-3" />
-                <span className="text-[10px] font-mono text-neutral-500 tracking-widest">
+              <div className="w-full py-4 bg-stone-50 border border-stone-100 rounded-2xl flex items-center justify-center">
+                <div className="w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mr-3" />
+                <span className="text-[10px] font-mono text-stone-400 tracking-widest">
                   {state === 'permission' ? 'AWAITING PERMISSION' : state === 'scanning' ? `SCANNING ${progress}%` : 'ANALYZING FRAME'}
                 </span>
               </div>
