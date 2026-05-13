@@ -6,31 +6,27 @@
 }
 
 :root {
-  --background: #fdf8f4;
-  --foreground: #18181b;
-  --accent: #7c3aed;
-  --accent-secondary: #d97706;
+  --bg:           #FAFAF8;
+  --bg-alt:       #F3F0EB;
+  --text:         #111111;
+  --text-muted:   #6B6B6B;
+  --accent:       #C4956A;
+  --accent-light: #F5EDE3;
+  --border:       #E5E0D8;
 }
 
 @layer base {
   body {
-    @apply bg-[var(--background)] text-[var(--foreground)] selection:bg-violet-200 selection:text-violet-900;
+    background: var(--bg);
+    color: var(--text);
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: #F5EDE3;
+    color: #111111;
   }
 }
 
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.text-gradient {
-  background: linear-gradient(135deg, #7c3aed 0%, #d97706 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-canvas {
-  touch-action: none;
-}
+canvas { touch-action: none; }
