@@ -1,75 +1,100 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 
 export default function CustomCursor() {
-  const [isHovered, setIsHovered] = useState(false);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
+  const [hovered, setHovered] = useState(false);
+  const [clicked, setClicked] = useState(false);
+  const [visible, setVisible] = useState(false);
 
-  const springConfig = { damping: 25, stiffness: 200 };
-  const cursorX = useSpring(mouseX, springConfig);
-  const cursorY = useSpring(mouseY, springConfig);
+  const mx = useMotionValue(-100);
+  const my = useMotionValue(-100);
+
+  const spring = { damping: 28, stiffness: 220, mass: 0.5 };
+  const x = useSpring(mx, spring);
+  const y = useSpring(my, spring);
+
+  // Ring lags a little more for nice effect
+  const ringSpring = { damping: 22, stiffness: 140, mass: 0.8 };
+  const rx = useSpring(mx, ringSpring);
+  const ry = useSpring(my, ringSpring);
 
   useEffect(() => {
-    const moveMouse = (e: MouseEvent) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
+    const onMove = (e: MouseEvent) => {
+      mx.set(e.clientX);
+      my.set(e.clientY);
+      if (!visible) setVisible(true);
     };
 
-    const handleHover = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'A' || 
-        target.tagName === 'BUTTON' || 
-        target.closest('button') || 
-        target.closest('a') ||
-        target.getAttribute('data-cursor-hover')
-      ) {
-        setIsHovered(true);
-      } else {
-        setIsHovered(false);
-      }
+    const onOver = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      setHovered(
+        t.tagName === 'A' || t.tagName === 'BUTTON' ||
+        !!t.closest('a') || !!t.closest('button') ||
+        !!t.getAttribute('data-cursor-hover')
+      );
     };
 
-    window.addEventListener('mousemove', moveMouse);
-    window.addEventListener('mouseover', handleHover);
+    const onDown = () => setClicked(true);
+    const onUp   = () => setClicked(false);
+    const onLeave = () => setVisible(false);
+    const onEnter = () => setVisible(true);
+
+    window.addEventListener('mousemove',  onMove);
+    window.addEventListener('mouseover',  onOver);
+    window.addEventListener('mousedown',  onDown);
+    window.addEventListener('mouseup',    onUp);
+    document.addEventListener('mouseleave', onLeave);
+    document.addEventListener('mouseenter', onEnter);
 
     return () => {
-      window.removeEventListener('mousemove', moveMouse);
-      window.removeEventListener('mouseover', handleHover);
+      window.removeEventListener('mousemove',  onMove);
+      window.removeEventListener('mouseover',  onOver);
+      window.removeEventListener('mousedown',  onDown);
+      window.removeEventListener('mouseup',    onUp);
+      document.removeEventListener('mouseleave', onLeave);
+      document.removeEventListener('mouseenter', onEnter);
     };
-  }, [mouseX, mouseY]);
+  }, [mx, my, visible]);
 
   return (
-    <motion.div
-      className="fixed top-0 left-0 w-8 h-8 pointer-events-none z-[9999]"
-      style={{
-        x: cursorX,
-        y: cursorY,
-        translateX: '-50%',
-        translateY: '-50%',
-      }}
-    >
+    <>
+      {/* Dot — fast, follows exactly */}
       <motion.div
-        animate={{
-          scale: isHovered ? 2 : 1,
-          backgroundColor: isHovered ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 1)',
-          border: isHovered ? '1px solid rgba(255, 255, 255, 1)' : '1px solid rgba(255, 255, 255, 0)',
-        }}
-        className="w-full h-full rounded-full mix-blend-difference"
-        transition={{ type: 'spring', stiffness: 250, damping: 20 }}
-      />
-      {isHovered && (
+        className="fixed top-0 left-0 pointer-events-none z-9999"
+        style={{ x, y, translateX: '-50%', translateY: '-50%' }}
+      >
         <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="absolute inset-0 flex items-center justify-center"
-        >
-          <div className="w-1 h-1 bg-white rounded-full" />
-        </motion.div>
-      )}
-    </motion.div>
+          animate={{
+            width:  hovered ? 6 : clicked ? 4 : 6,
+            height: hovered ? 6 : clicked ? 4 : 6,
+            opacity: visible ? 1 : 0,
+          }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          className="rounded-full"
+          style={{ background: '#C4956A' }}
+        />
+      </motion.div>
+
+      {/* Ring — slower, lags behind */}
+      <motion.div
+        className="fixed top-0 left-0 pointer-events-none z-9998"
+        style={{ x: rx, y: ry, translateX: '-50%', translateY: '-50%' }}
+      >
+        <motion.div
+          animate={{
+            width:   hovered ? 40 : clicked ? 20 : 28,
+            height:  hovered ? 40 : clicked ? 20 : 28,
+            opacity: visible ? (hovered ? 0.5 : 0.25) : 0,
+            borderColor: hovered ? '#C4956A' : '#C4956A',
+          }}
+          transition={{ type: 'spring', stiffness: 200, damping: 24 }}
+          className="rounded-full border"
+          style={{ borderColor: '#C4956A' }}
+        />
+      </motion.div>
+    </>
   );
 }
