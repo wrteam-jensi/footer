@@ -146,9 +146,11 @@ export default function FootScanner({ onResult, onClose }: Props) {
     animFrameRef.current = requestAnimationFrame(animateScan);
   }, []);
 
+  // Auto-start camera immediately when modal opens
   useEffect(() => {
+    startCamera();
     return () => stopCamera();
-  }, [stopCamera]);
+  }, [startCamera, stopCamera]);
 
   const handleClose = () => { stopCamera(); onClose(); };
   const handleApply = () => {
@@ -197,18 +199,18 @@ export default function FootScanner({ onResult, onClose }: Props) {
               className="w-full h-full object-cover"
               playsInline
               muted
-              style={{ display: state === 'idle' || state === 'permission' || state === 'error' ? 'none' : 'block' }}
+              style={{ display: state === 'permission' || state === 'error' ? 'none' : 'block' }}
             />
             <canvas ref={canvasRef} className="hidden" />
 
-            {(state === 'idle' || state === 'permission') && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                <div className="w-20 h-20 rounded-full bg-violet-50 border-2 border-violet-100 flex items-center justify-center">
-                  <Camera size={30} className="text-violet-400" />
+            {state === 'permission' && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                <div className="relative w-14 h-14">
+                  <div className="absolute inset-0 rounded-full border-2 border-violet-200 animate-ping" />
+                  <div className="absolute inset-2 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+                  <Camera size={18} className="absolute inset-0 m-auto text-violet-500" />
                 </div>
-                <p className="text-stone-400 text-sm font-medium text-center px-6">
-                  {state === 'permission' ? 'Requesting camera access…' : 'Camera preview will appear here'}
-                </p>
+                <p className="text-stone-400 text-sm font-medium text-center px-6">Opening camera…</p>
               </div>
             )}
 
@@ -295,26 +297,16 @@ export default function FootScanner({ onResult, onClose }: Props) {
             )}
           </div>
 
-          {(state === 'idle' || state === 'ready') && (
+          {state === 'ready' && (
             <div className="flex items-start gap-3 p-4 rounded-2xl bg-violet-50 border border-violet-100">
               <Ruler size={14} className="text-violet-500 mt-0.5 shrink-0" />
               <p className="text-[11px] font-medium text-stone-500 leading-relaxed">
-                Place a standard credit/debit card next to your foot as a scale reference. Stand on a flat, well-lit surface.
+                Place a credit/debit card beside your foot as scale reference. Stand on a flat, well-lit surface.
               </p>
             </div>
           )}
 
           <div className="space-y-2.5">
-            {state === 'idle' && (
-              <button
-                onClick={startCamera}
-                className="w-full py-4 bg-zinc-900 text-white font-black text-xs tracking-[0.2em] rounded-2xl hover:bg-violet-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-stone-200"
-              >
-                <Camera size={15} />
-                OPEN CAMERA
-              </button>
-            )}
-
             {state === 'ready' && (
               <button
                 onClick={runScan}
@@ -353,19 +345,28 @@ export default function FootScanner({ onResult, onClose }: Props) {
             )}
 
             {state === 'error' && (
-              <button
-                onClick={() => setState('idle')}
-                className="w-full py-4 bg-stone-100 text-stone-600 font-black text-xs tracking-widest rounded-2xl hover:bg-stone-200 transition-all"
-              >
-                TRY AGAIN
-              </button>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-4 rounded-2xl bg-rose-50 border border-rose-100">
+                  <AlertCircle size={16} className="text-rose-500 shrink-0" />
+                  <p className="text-[11px] font-medium text-rose-600 leading-relaxed">
+                    Camera not available. Check browser permissions and try again.
+                  </p>
+                </div>
+                <button
+                  onClick={startCamera}
+                  className="w-full py-4 bg-stone-100 text-stone-600 font-black text-xs tracking-widest rounded-2xl hover:bg-stone-200 transition-all flex items-center justify-center gap-2"
+                >
+                  <RefreshCw size={13} />
+                  RETRY CAMERA
+                </button>
+              </div>
             )}
 
             {(state === 'scanning' || state === 'analyzing' || state === 'permission') && (
               <div className="w-full py-4 bg-stone-50 border border-stone-100 rounded-2xl flex items-center justify-center">
                 <div className="w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mr-3" />
                 <span className="text-[10px] font-mono text-stone-400 tracking-widest">
-                  {state === 'permission' ? 'AWAITING PERMISSION' : state === 'scanning' ? `SCANNING ${progress}%` : 'ANALYZING FRAME'}
+                  {state === 'permission' ? 'STARTING CAMERA…' : state === 'scanning' ? `SCANNING ${progress}%` : 'ANALYZING…'}
                 </span>
               </div>
             )}
