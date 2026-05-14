@@ -83,119 +83,148 @@ function SlipperSVG({ color, flip = false, text = '', embellishment = 'Pom Pom' 
 }) {
   const uid = flip ? 'r' : 'l';
 
+  // Top-down view — left foot, toe RIGHT
+  // Real footprint: wide at ball, NARROWS at arch, medium heel
+  const sole = 'M 52 73 C 34 68 20 82 20 100 C 20 118 34 128 52 127 C 75 130 108 122 140 118 C 165 114 186 128 212 142 C 234 148 256 136 266 118 C 274 104 272 86 263 78 C 253 68 234 64 210 65 C 188 66 165 68 148 70 C 132 72 118 76 100 78 C 84 78 66 74 52 73 Z';
+
   return (
     <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg"
-      className="drop-shadow-2xl transition-all duration-700 ease-out"
-      style={{ transform: flip ? 'scaleX(-1)' : undefined, width: '100%', height: '100%' }}>
+      style={{ transform: flip ? 'scaleX(-1)' : undefined, width: '100%', height: '100%',
+               filter: 'drop-shadow(0 20px 36px rgba(0,0,0,0.24))' }}>
       <defs>
-        <linearGradient id={`sole-g-${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#9ca3af" />
-          <stop offset="100%" stopColor="#374151" />
-        </linearGradient>
-        <radialGradient id={`upper-light-${uid}`} cx="32%" cy="28%" r="70%">
-          <stop offset="0%" stopColor="white" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="black" stopOpacity="0.12" />
+        {/* Dome radial — bright top-left, dark bottom-right edges */}
+        <radialGradient id={`rg-${uid}`} cx="36%" cy="30%" r="74%" fx="30%" fy="24%">
+          <stop offset="0%"   stopColor="white" stopOpacity="0.52" />
+          <stop offset="38%"  stopColor="white" stopOpacity="0.04" />
+          <stop offset="100%" stopColor="black" stopOpacity="0.30" />
         </radialGradient>
-        <filter id={`dshadow-${uid}`} x="-15%" y="-15%" width="130%" height="140%">
-          <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#000" floodOpacity="0.2"/>
-        </filter>
+        {/* Bottom-edge darkening */}
+        <linearGradient id={`be-${uid}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="50%"  stopColor="transparent" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.28)" />
+        </linearGradient>
+        {/* Specular glow */}
+        <radialGradient id={`sg-${uid}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="white" stopOpacity="0.88" />
+          <stop offset="100%" stopColor="white" stopOpacity="0"    />
+        </radialGradient>
       </defs>
 
-      {/* Floor shadow */}
-      <ellipse cx="160" cy="195" rx="115" ry="8" fill="black" opacity="0.13"/>
+      {/* Ground shadow */}
+      <ellipse cx="152" cy="170" rx="122" ry="9" fill="rgba(0,0,0,0.11)" />
 
-      {/* Sole — foot-shaped: rounded heel left, tapered toe right */}
+      {/* Sole edge — slightly enlarged offset to show thickness from top-down */}
       <path
-        d="M 46 114 C 33 132 37 162 62 172 C 100 184 170 186 228 174 C 255 166 275 146 275 118 C 275 90 255 72 228 70 C 200 66 165 64 134 70 C 102 76 68 90 52 106 C 47 110 46 112 46 114 Z"
-        fill={`url(#sole-g-${uid})`}
-        filter={`url(#dshadow-${uid})`}
+        d="M 54 94 C 36 87 22 100 24 116 C 26 134 42 142 64 143 C 96 147 150 148 206 144 C 238 140 264 128 276 112 C 287 97 280 80 263 72 C 247 63 222 62 194 63 C 164 63 134 69 108 76 C 80 83 64 89 54 94 Z"
+        fill="rgba(0,0,0,0.22)"
       />
 
-      {/* Sole tread grooves */}
-      <path d="M 60 162 Q 145 178 234 165" stroke="rgba(0,0,0,0.12)" strokeWidth="2" fill="none" strokeLinecap="round"/>
-      <path d="M 68 170 Q 148 184 238 172" stroke="rgba(0,0,0,0.07)" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      {/* === MAIN SOLE SURFACE === */}
+      <path d={sole} fill={color} />
 
-      {/* Footbed (insole surface) */}
-      <path
-        d="M 53 112 C 43 128 46 155 70 164 C 105 176 168 178 224 167 C 250 159 267 142 267 117 C 267 92 250 78 225 76 C 198 72 165 71 136 76 C 106 81 74 93 58 107 C 53 110 53 111 53 112 Z"
-        fill="#e2e8f0"
-      />
-      <path
-        d="M 63 110 C 56 122 58 144 76 153 C 108 165 166 167 218 157 C 242 150 257 134 255 112 C 252 92 237 80 214 79 C 190 75 162 74 136 79 C 109 83 82 93 68 106 Z"
-        fill="#f1f5f9"
-      />
+      {/* Dome shading pass */}
+      <path d={sole} fill={`url(#rg-${uid})`} />
 
-      {/* Upper — main colored slipper body */}
-      <path
-        d="M 58 105 C 57 79 78 59 138 56 C 190 53 234 64 260 86 C 274 98 276 118 268 132 C 258 148 234 157 200 161 C 160 166 118 164 90 154 C 68 144 60 130 59 116 C 58 111 58 108 58 105 Z"
-        fill={color}
-      />
-      <path
-        d="M 58 105 C 57 79 78 59 138 56 C 190 53 234 64 260 86 C 274 98 276 118 268 132 C 258 148 234 157 200 161 C 160 166 118 164 90 154 C 68 144 60 130 59 116 C 58 111 58 108 58 105 Z"
-        fill={`url(#upper-light-${uid})`}
-      />
+      {/* Bottom-edge darkening */}
+      <path d={sole} fill={`url(#be-${uid})`} />
 
-      {/* Specular highlight along top edge */}
+      {/* Primary specular — large soft gloss spot */}
+      <ellipse cx="130" cy="92" rx="60" ry="24"
+        fill={`url(#sg-${uid})`} opacity="0.48"
+        transform="rotate(-10 130 92)" />
+
+      {/* Secondary specular — tight bright peak */}
+      <ellipse cx="116" cy="85" rx="28" ry="11"
+        fill="white" opacity="0.38"
+        transform="rotate(-10 116 85)" />
+
+      {/* Right-side shadow (shadow opposite light source) */}
       <path
-        d="M 68 94 C 108 74 172 62 230 76 C 254 83 268 98 270 112"
-        stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.3"
+        d="M 255 72 C 270 82 278 96 276 112 C 272 124 264 132 256 136 C 266 128 274 112 272 98 C 270 84 260 74 248 68 Z"
+        fill="rgba(0,0,0,0.16)"
       />
 
-      {/* Embellishments */}
+      {/* === Y-STRAP — both arms start from SAME toe-post point === */}
+      {/* Upper arm: toe-post → upper side of foot */}
+      <path d="M 258 100 C 232 96 204 90 172 84 C 158 82 143 80 130 78"
+        stroke="rgba(0,0,0,0.22)" strokeWidth="16" fill="none" strokeLinecap="round"/>
+      <path d="M 258 100 C 232 96 204 90 172 84 C 158 82 143 80 130 78"
+        stroke="#ede9e4" strokeWidth="12" fill="none" strokeLinecap="round"/>
+      <path d="M 256 97 C 230 93 203 87 172 81 C 158 79 143 77 131 75"
+        stroke="white" strokeWidth="5" fill="none" strokeLinecap="round" opacity="0.82"/>
+      <path d="M 256 103 C 230 99 204 93 172 87 C 158 85 143 83 131 81"
+        stroke="rgba(0,0,0,0.10)" strokeWidth="3" fill="none" strokeLinecap="round"/>
+
+      {/* Lower arm: toe-post → lower side of foot */}
+      <path d="M 258 100 C 232 104 204 110 172 116 C 158 118 143 120 130 122"
+        stroke="rgba(0,0,0,0.22)" strokeWidth="16" fill="none" strokeLinecap="round"/>
+      <path d="M 258 100 C 232 104 204 110 172 116 C 158 118 143 120 130 122"
+        stroke="#ede9e4" strokeWidth="12" fill="none" strokeLinecap="round"/>
+      <path d="M 256 97 C 230 101 204 107 172 113 C 158 115 143 117 131 119"
+        stroke="white" strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.70"/>
+      <path d="M 256 103 C 230 107 204 113 172 119 C 158 121 143 123 131 125"
+        stroke="rgba(0,0,0,0.10)" strokeWidth="3" fill="none" strokeLinecap="round"/>
+
+      {/* Thong post (oval peg between toes) */}
+      <ellipse cx="261" cy="100" rx="10" ry="13" fill="#cac5be"/>
+      <ellipse cx="259" cy="96"  rx="6"  ry="8"  fill="white" opacity="0.92"/>
+
+      {/* === EMBELLISHMENTS === */}
+      {/* Embellishments sit on the strap Y-junction area */}
       {embellishment === 'Pom Pom' && (
-        <g className="animate-pulse">
-          {[
-            { cx: 118, cy: 76, r: 16 },
-            { cx: 152, cy: 67, r: 20 },
-            { cx: 190, cy: 71, r: 17 },
-          ].map((p, i) => (
+        <g>
+          {[{ cx: 190, cy: 100, r: 24 }].map((p, i) => (
             <g key={i}>
-              <circle cx={p.cx + 2} cy={p.cy + 5} r={p.r + 2} fill="rgba(0,0,0,0.13)" />
-              <circle cx={p.cx} cy={p.cy} r={p.r} fill="white" />
-              <circle cx={p.cx - 4} cy={p.cy - 4} r={p.r * 0.38} fill="rgba(255,255,255,0.7)" />
-              <circle cx={p.cx + 3} cy={p.cy + 3} r={p.r * 0.28} fill="rgba(0,0,0,0.06)" />
-              <circle cx={p.cx} cy={p.cy} r={p.r} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth="1.5" />
+              <ellipse cx={p.cx + 1} cy={p.cy + p.r - 1} rx={p.r * 0.85} ry={p.r * 0.20} fill="rgba(0,0,0,0.18)"/>
+              <circle cx={p.cx} cy={p.cy} r={p.r} fill="white"/>
+              <circle cx={p.cx} cy={p.cy} r={p.r} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="1.5"/>
+              <ellipse cx={p.cx-7} cy={p.cy-8} rx={p.r*0.44} ry={p.r*0.30} fill="white" opacity="0.85" transform={`rotate(-30 ${p.cx-7} ${p.cy-8})`}/>
+              <circle cx={p.cx+7} cy={p.cy+7} r={p.r*0.20} fill="rgba(0,0,0,0.05)"/>
             </g>
           ))}
         </g>
       )}
 
       {embellishment === 'Bow' && (
-        <g transform="translate(152, 70)">
-          <path d="M 0 0 C -6 -16 -26 -16 -26 -5 C -26 5 -8 5 0 0 Z" fill="white" opacity="0.95"/>
-          <path d="M 0 0 C 6 -16 26 -16 26 -5 C 26 5 8 5 0 0 Z" fill="white" opacity="0.95"/>
-          <path d="M 0 0 C -6 16 -26 16 -26 5 C -26 -5 -8 -4 0 0 Z" fill="white" opacity="0.82"/>
-          <path d="M 0 0 C 6 16 26 16 26 5 C 26 -5 8 -4 0 0 Z" fill="white" opacity="0.82"/>
-          <circle cx="0" cy="0" r="6" fill="white"/>
+        <g transform="translate(190, 100) scale(1.2)">
+          <path d="M 0 0 C -5 -16 -28 -15 -28 -4 C -28 7 -8 7 0 0 Z" fill="white" opacity="0.95"/>
+          <path d="M 0 0 C 5 -16 28 -15 28 -4 C 28 7 8 7 0 0 Z"  fill="white" opacity="0.95"/>
+          <path d="M 0 0 C -5 16 -28 15 -28 4 C -28 -7 -8 -6 0 0 Z" fill="rgba(255,255,255,0.82)"/>
+          <path d="M 0 0 C 5 16 28 15 28 4 C 28 -7 8 -6 0 0 Z"  fill="rgba(255,255,255,0.82)"/>
+          <circle cx="0" cy="0" r="7" fill="white"/>
+          <circle cx="-2" cy="-2" r="3" fill="white" opacity="0.9"/>
         </g>
       )}
 
       {embellishment === 'Heart' && (
-        <g transform="translate(152, 70) scale(2.5)">
-          <path d="M 0 4 C -2 8 -13 5 -13 -2 C -13 -9 -7 -11 0 -5 C 7 -11 13 -9 13 -2 C 13 5 2 8 0 4 Z" fill="white" opacity="0.95"/>
+        <g transform="translate(190, 100) scale(2.8)">
+          <path d="M 0 4.5 C -2 9 -14 6 -14 -2 C -14 -9 -7 -12 0 -5.5 C 7 -12 14 -9 14 -2 C 14 6 2 9 0 4.5 Z" fill="white" opacity="0.95"/>
+          <path d="M -4 -4 C -2 -9 2 -9 4 -6" stroke="white" strokeWidth="1.5" fill="none" opacity="0.6"/>
         </g>
       )}
 
       {embellishment === 'Rhinestone' && (
         <g>
           {[
-            {x:120,y:73},{x:146,y:63},{x:174,y:66},{x:200,y:75},
-            {x:133,y:89},{x:160,y:81},{x:186,y:87},{x:107,y:86},
+            {x:150,y:88},{x:175,y:80},{x:200,y:82},{x:222,y:91},
+            {x:160,y:106},{x:185,y:100},{x:210,y:108},{x:135,y:100},
           ].map((p, i) => (
             <g key={i}>
-              <circle cx={p.x} cy={p.y} r={5} fill="white" opacity="0.9"/>
-              <circle cx={p.x-1} cy={p.y-1} r={2} fill="white"/>
-              <circle cx={p.x} cy={p.y} r={5} fill="none" stroke="rgba(180,200,255,0.6)" strokeWidth="0.5"/>
+              <circle cx={p.x} cy={p.y} r={5.5} fill="white" opacity="0.88"/>
+              <ellipse cx={p.x-1.5} cy={p.y-1.5} rx={2.2} ry={1.5} fill="white" opacity="0.95"/>
+              <circle cx={p.x} cy={p.y} r={5.5} fill="none" stroke="rgba(200,215,255,0.5)" strokeWidth="0.5"/>
+              <line x1={p.x} y1={p.y-8} x2={p.x} y2={p.y+8} stroke="white" strokeWidth="0.6" opacity="0.45"/>
+              <line x1={p.x-8} y1={p.y} x2={p.x+8} y2={p.y} stroke="white" strokeWidth="0.6" opacity="0.45"/>
             </g>
           ))}
         </g>
       )}
 
-      {/* Personalized text */}
+      {/* Text */}
       {text && (
         <g transform={flip ? 'translate(300,0) scale(-1,1)' : undefined}>
-          <text x="160" y="120" textAnchor="middle" fontSize="13" fontWeight="900"
-            fill="white" opacity="0.9"
+          <text x="148" y="136" textAnchor="middle" fontSize="11" fontWeight="700"
+            fill="white" opacity="0.80"
             style={{ fontFamily: 'system-ui, sans-serif', letterSpacing: '2px' }}
           >{text.toUpperCase()}</text>
         </g>
