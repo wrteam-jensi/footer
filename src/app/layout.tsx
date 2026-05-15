@@ -8,8 +8,8 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Velura — Custom Slippers, Designed by You",
-  description: "Design your perfect pair of custom slippers. Choose material, colour, embellishments — and scan your foot for a perfect fit.",
+  title: "Mojdi — Artisanal Gujarati Footwear for Your Feet",
+  description: "Experience the vibrant comfort of Mojdi. Handcrafted Gujarati slippers featuring Kutch embroidery and artisanal craftsmanship.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

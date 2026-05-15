@@ -47,10 +47,10 @@ export default function Navbar() {
             </motion.div>
             <div>
               <span className="text-lg font-bold tracking-tight block leading-none" style={{ color: 'var(--text)' }}>
-                Velura
+                Mojdi
               </span>
               <span className="text-[8px] font-mono tracking-[0.3em] leading-none" style={{ color: 'var(--accent)' }}>
-                CUSTOM SLIPPERS
+                GUJARATI ARTISANAL LUXURY
               </span>
             </div>
           </a>

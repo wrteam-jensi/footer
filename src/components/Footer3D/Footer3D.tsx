@@ -72,7 +72,7 @@ export default function Footer3D() {
               NEVER MISS A DROP
             </p>
             <h3 className="text-3xl md:text-4xl font-bold tracking-tight text-white leading-tight">
-              Join 12,000+ Velura<br />
+              Join 12,000+ Mojdi<br />
               <span style={{ color: 'var(--accent)' }}>customers.</span>
             </h3>
           </div>
@@ -121,9 +121,9 @@ export default function Footer3D() {
                 🩴
               </div>
               <div>
-                <span className="text-lg font-bold text-white block leading-none">Velura</span>
+                <span className="text-lg font-bold text-white block leading-none">Mojdi</span>
                 <span className="text-[9px] font-mono tracking-[0.3em]" style={{ color: 'rgba(196,149,106,0.7)' }}>
-                  CUSTOM SLIPPERS
+                  GUJARATI ARTISANAL LUXURY
                 </span>
               </div>
             </div>
@@ -208,7 +208,7 @@ export default function Footer3D() {
             </div>
 
             <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.18)' }}>
-              © 2026 Velura
+              © 2026 Mojdi
             </p>
 
             {/* Scroll to top */}

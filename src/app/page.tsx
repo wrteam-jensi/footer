@@ -127,7 +127,7 @@ function FeaturesSection() {
           <div>
             <FadeUp>
               <p className="text-xs font-mono tracking-[0.4em] mb-4" style={{ color: 'var(--accent)' }}>
-                WHY VELURA
+                WHY MOJDI
               </p>
             </FadeUp>
             <FadeUp delay={0.08}>
@@ -214,7 +214,7 @@ function BrandSection() {
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
         <span className="text-[18vw] font-black tracking-tighter select-none"
           style={{ color: 'rgba(196,149,106,0.05)', whiteSpace: 'nowrap' }}>
-          VELURA
+          MOJDI
         </span>
       </div>
 
@@ -250,7 +250,7 @@ function BrandSection() {
               transition={{ delay: 0.45, duration: 0.6 }}
               className="text-base leading-relaxed mt-7 max-w-md" style={{ color: 'var(--text-muted)' }}
             >
-              Velura was born from one belief: your slippers should feel like they were made just for you — because they are.
+              Mojdi was born from one belief: your slippers should feel like they were made just for you — because they are.
             </motion.p>
 
             <motion.a
@@ -309,12 +309,12 @@ function CustomiserIntro() {
         <FadeUp delay={0.08}>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4"
             style={{ color: 'var(--text)' }}>
-            Build your pair.
+            Design your Mojdi.
           </h2>
         </FadeUp>
         <FadeUp delay={0.15}>
           <p className="text-sm max-w-sm mx-auto" style={{ color: 'var(--text-muted)' }}>
-            Drag charms, pick colours, scan your foot — see it live in real time.
+            Select fabrics, pick Bandhani colors, scan your foot — see your artisanal creation live.
           </p>
         </FadeUp>
       </div>

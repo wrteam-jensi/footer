@@ -559,8 +559,8 @@ export default function SlipperCustomizer() {
     <div className="flex-1 flex flex-col p-6 lg:p-8 gap-6 min-w-0 bg-[#f8fafc]/50 relative">
       <div className="flex justify-between items-end">
         <div>
-          <h3 className="text-2xl font-black text-slate-900 tracking-tight">Studio Design Canvas</h3>
-          <p className="text-sm text-slate-500 font-medium">Drag charms and patterns onto the 3D preview to customize your pair.</p>
+          <h3 className="text-2xl font-black text-slate-900 tracking-tight">Mojdi Design Studio</h3>
+          <p className="text-sm text-slate-500 font-medium">Customize your pair with traditional motifs and modern accents.</p>
         </div>
         <div className="hidden lg:flex items-center gap-3 bg-white/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white shadow-sm">
           <div className="flex -space-x-2">
