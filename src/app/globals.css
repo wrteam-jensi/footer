@@ -8,14 +8,22 @@
 :root {
   --bg:           #FAFAF8;
   --bg-alt:       #F3F0EB;
+  --bg-dark:      #0C0A09;
   --text:         #111111;
-  --text-muted:   #6B6B6B;
+  --text-muted:   #737373;
+  --text-inv:     #FAFAF8;
   --accent:       #C4956A;
   --accent-light: #F5EDE3;
+  --accent-dark:  #96693D;
   --border:       #E5E0D8;
+  --border-dark:  rgba(255,255,255,0.08);
 }
 
 @layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
   body {
     background: var(--bg);
     color: var(--text);
@@ -26,10 +34,18 @@
 
   a, button { cursor: none; }
 
-  ::selection {
-    background: #F5EDE3;
-    color: #111111;
-  }
+  ::selection { background: #F5EDE3; color: #111111; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 }
 
 canvas { touch-action: none; }
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track { animation: marquee 28s linear infinite; }
+.marquee-track:hover { animation-play-state: paused; }
