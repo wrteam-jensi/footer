@@ -29,10 +29,9 @@
     color: var(--text);
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
-    cursor: none;
   }
 
-  a, button { cursor: none; }
+  a, button { }
 
   ::selection { background: #F5EDE3; color: #111111; }
 
